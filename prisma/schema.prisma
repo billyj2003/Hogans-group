@@ -1,0 +1,67 @@
+// Prisma schema for the Hogan Group delivery portal: customer accounts,
+// portal users (customers + staff/admin), and delivery tracking.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+enum DeliveryStatus {
+  ORDERED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  name      String
+  siteNotes String?
+  createdAt DateTime @default(now())
+
+  users      User[]
+  deliveries Delivery[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  accountId    String?
+  account      Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+}
+
+model Delivery {
+  id           String         @id @default(cuid())
+  accountId    String
+  account      Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  status       DeliveryStatus @default(ORDERED)
+  material     String
+  quantity     Float
+  unit         String
+  siteAddress  String
+  docketNumber String?
+  vehicleReg   String?
+  driverName   String?
+  orderedAt    DateTime       @default(now())
+  expectedDate DateTime?
+  dispatchedAt DateTime?
+  deliveredAt  DateTime?
+  podSignedBy  String?
+  podPhotoUrl  String?
+  podNote      String?
+  createdAt    DateTime       @default(now())
+}
