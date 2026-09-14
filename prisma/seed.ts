@@ -10,6 +10,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const staffPassword = await bcrypt.hash("staff123", 10);
   const customerPassword = await bcrypt.hash("customer123", 10);
+  const driverPassword = await bcrypt.hash("driver123", 10);
 
   await prisma.user.upsert({
     where: { email: "dispatch@hogan-group.co.uk" },
@@ -19,6 +20,17 @@ async function main() {
       email: "dispatch@hogan-group.co.uk",
       passwordHash: staffPassword,
       role: "ADMIN",
+    },
+  });
+
+  const driver = await prisma.user.upsert({
+    where: { email: "tom.ellis@driver.hogan-group.co.uk" },
+    update: {},
+    create: {
+      name: "Tom Ellis",
+      email: "tom.ellis@driver.hogan-group.co.uk",
+      passwordHash: driverPassword,
+      role: "DRIVER",
     },
   });
 
@@ -81,7 +93,7 @@ async function main() {
       siteAddress: "Plot 4, Llanberis Road, Caernarfon",
       docketNumber: "HG-10231",
       vehicleReg: "CV19 HGN",
-      driverName: "Tom Ellis",
+      driverId: driver.id,
       orderedAt: hours(-30),
       expectedDate: hours(-6),
       dispatchedAt: hours(-7),
@@ -104,12 +116,30 @@ async function main() {
       siteAddress: "Plot 4, Llanberis Road, Caernarfon",
       docketNumber: "HG-10255",
       vehicleReg: "CV19 HGN",
-      driverName: "Tom Ellis",
+      driverId: driver.id,
       orderedAt: hours(-4),
       expectedDate: hours(2),
       dispatchedAt: hours(-1),
     },
   });
+
+  // Breadcrumb trail for the in-transit delivery, depot -> site, so the
+  // live tracker map has something to show without waiting on a real driver.
+  await prisma.deliveryPosition.deleteMany({ where: { deliveryId: "seed-delivery-2" } });
+  const depot = { lat: 53.228, lng: -4.129 };
+  const site = { lat: 53.14, lng: -4.276 };
+  const trailPoints = 6;
+  for (let i = 0; i < trailPoints; i++) {
+    const t = i / (trailPoints - 1);
+    await prisma.deliveryPosition.create({
+      data: {
+        deliveryId: "seed-delivery-2",
+        lat: depot.lat + (site.lat - depot.lat) * t,
+        lng: depot.lng + (site.lng - depot.lng) * t,
+        recordedAt: new Date(hours(-1).getTime() + t * 55 * 60 * 1000),
+      },
+    });
+  }
 
   await prisma.delivery.upsert({
     where: { id: "seed-delivery-3" },
@@ -129,6 +159,7 @@ async function main() {
   console.log("Seed complete.");
   console.log("Staff login: dispatch@hogan-group.co.uk / staff123");
   console.log(`Customer login: ${customerA.email} / customer123`);
+  console.log(`Driver login: ${driver.email} / driver123`);
 }
 
 main()

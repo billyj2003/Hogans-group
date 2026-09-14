@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn } from "@/auth";
+import { homeForRole } from "@/lib/require-role";
 
 export default async function LoginPage({
   searchParams,
@@ -10,7 +11,7 @@ export default async function LoginPage({
   const { error } = await searchParams;
   const session = await auth();
   if (session?.user) {
-    redirect(session.user.role === "CUSTOMER" ? "/portal" : "/dispatch");
+    redirect(homeForRole(session.user.role));
   }
 
   async function login(formData: FormData) {
@@ -79,7 +80,8 @@ export default async function LoginPage({
 
       <p className="mt-8 rounded bg-concrete-100 px-4 py-3 text-xs text-graphite-900/50">
         Demo &mdash; staff: dispatch@hogan-group.co.uk / staff123 &middot;
-        customer: orders@eryriconstruction.example / customer123
+        customer: orders@eryriconstruction.example / customer123 &middot;
+        driver: tom.ellis@driver.hogan-group.co.uk / driver123
       </p>
     </div>
   );

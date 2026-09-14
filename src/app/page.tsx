@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { homeForRole } from "@/lib/require-role";
 
 export default async function HomePage() {
   const session = await auth();
   if (session?.user) {
-    const isStaff = session.user.role === "STAFF" || session.user.role === "ADMIN";
-    redirect(isStaff ? "/dispatch" : "/portal");
+    redirect(homeForRole(session.user.role));
   }
 
   return (

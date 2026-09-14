@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
+import { homeForRole } from "@/lib/require-role";
 
 export async function SiteHeader() {
   const session = await auth();
   const isStaff = session?.user?.role === "STAFF" || session?.user?.role === "ADMIN";
-  const homeHref = session?.user ? (isStaff ? "/dispatch" : "/portal") : "/";
+  const homeHref = session?.user ? homeForRole(session.user.role) : "/";
 
   return (
     <header className="sticky top-0 z-20 border-b border-graphite-950/10 bg-graphite-950 text-concrete-100">
@@ -19,6 +20,11 @@ export async function SiteHeader() {
               My Deliveries
             </Link>
           )}
+          {session?.user?.role === "DRIVER" && (
+            <Link href="/driver" className="hover:text-orange-500">
+              My Jobs
+            </Link>
+          )}
           {isStaff && (
             <>
               <Link href="/dispatch" className="hover:text-orange-500">
@@ -26,6 +32,9 @@ export async function SiteHeader() {
               </Link>
               <Link href="/dispatch/accounts" className="hover:text-orange-500">
                 Accounts
+              </Link>
+              <Link href="/dispatch/drivers" className="hover:text-orange-500">
+                Drivers
               </Link>
             </>
           )}

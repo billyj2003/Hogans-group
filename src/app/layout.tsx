@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
+import "leaflet/dist/leaflet.css";
 import { SiteHeader } from "@/components/site-header";
 
 const archivo = Archivo({

@@ -14,11 +14,14 @@ enum Role {
   CUSTOMER
   STAFF
   ADMIN
+  DRIVER
 }
 
 enum DeliveryStatus {
   ORDERED
   DISPATCHED
+  ON_SITE
+  UNLOADING
   DELIVERED
   CANCELLED
 }
@@ -42,26 +45,53 @@ model User {
   accountId    String?
   account      Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
+
+  driverDeliveries Delivery[] @relation("DriverDeliveries")
 }
 
 model Delivery {
-  id           String         @id @default(cuid())
-  accountId    String
-  account      Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  status       DeliveryStatus @default(ORDERED)
-  material     String
-  quantity     Float
-  unit         String
-  siteAddress  String
-  docketNumber String?
-  vehicleReg   String?
-  driverName   String?
-  orderedAt    DateTime       @default(now())
-  expectedDate DateTime?
-  dispatchedAt DateTime?
-  deliveredAt  DateTime?
-  podSignedBy  String?
-  podPhotoUrl  String?
-  podNote      String?
-  createdAt    DateTime       @default(now())
+  id                String         @id @default(cuid())
+  accountId         String
+  account           Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  status            DeliveryStatus @default(ORDERED)
+  material          String
+  quantity          Float
+  deliveredQuantity Float?
+  unit              String
+  siteAddress       String
+  docketNumber      String?
+  vehicleReg        String?
+  driverId          String?
+  driver            User?          @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
+  orderedAt         DateTime       @default(now())
+  expectedDate      DateTime?
+  dispatchedAt      DateTime?
+  onSiteAt          DateTime?
+  unloadingAt       DateTime?
+  deliveredAt       DateTime?
+  podSignedBy       String?
+  podPhotoUrl       String?
+  podNote           String?
+  createdAt         DateTime       @default(now())
+
+  events    DeliveryStatusEvent[]
+  positions DeliveryPosition[]
+}
+
+model DeliveryStatusEvent {
+  id         String         @id @default(cuid())
+  deliveryId String
+  delivery   Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  status     DeliveryStatus
+  note       String?
+  createdAt  DateTime       @default(now())
+}
+
+model DeliveryPosition {
+  id         String   @id @default(cuid())
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now())
 }
