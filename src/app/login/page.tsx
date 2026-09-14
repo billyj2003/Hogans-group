@@ -36,7 +36,7 @@ export default async function LoginPage({
         Delivery Portal Log In
       </h1>
       <p className="mt-2 text-sm text-graphite-900/60">
-        For Hogan Group customers and staff.
+        For Hogan Group staff and drivers.
       </p>
 
       {error && (
@@ -80,7 +80,6 @@ export default async function LoginPage({
 
       <p className="mt-8 rounded bg-concrete-100 px-4 py-3 text-xs text-graphite-900/50">
         Demo &mdash; staff: dispatch@hogan-group.co.uk / staff123 &middot;
-        customer: orders@eryriconstruction.example / customer123 &middot;
         driver: tom.ellis@driver.hogan-group.co.uk / driver123
       </p>
     </div>

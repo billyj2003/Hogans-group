@@ -47,31 +47,6 @@ export async function createAccount(formData: FormData) {
   revalidatePath("/dispatch/accounts");
 }
 
-export async function createAccountUser(formData: FormData) {
-  await assertStaff();
-
-  const accountId = String(formData.get("accountId"));
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "")
-    .trim()
-    .toLowerCase();
-  const password = String(formData.get("password") ?? "");
-
-  if (!name || !email || password.length < 6) {
-    throw new Error("Name, email, and a password of at least 6 characters are required.");
-  }
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) throw new Error("A user with that email already exists.");
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.create({
-    data: { name, email, passwordHash, role: "CUSTOMER", accountId },
-  });
-
-  revalidatePath(`/dispatch/accounts/${accountId}`);
-}
-
 export async function createDriver(formData: FormData) {
   await assertStaff();
 
@@ -245,8 +220,6 @@ export async function updateDeliveryStatus(formData: FormData) {
   revalidatePath("/dispatch");
   revalidatePath(`/dispatch/jobs/${jobId}`);
   revalidatePath(`/dispatch/jobs/${jobId}/deliveries/${deliveryId}`);
-  revalidatePath(`/portal/jobs/${jobId}`);
-  revalidatePath(`/portal/jobs/${jobId}/deliveries/${deliveryId}`);
 }
 
 export async function recordProofOfDelivery(formData: FormData) {
@@ -295,8 +268,6 @@ export async function recordProofOfDelivery(formData: FormData) {
   revalidatePath("/dispatch");
   revalidatePath(`/dispatch/jobs/${jobId}`);
   revalidatePath(`/dispatch/jobs/${jobId}/deliveries/${deliveryId}`);
-  revalidatePath(`/portal/jobs/${jobId}`);
-  revalidatePath(`/portal/jobs/${jobId}/deliveries/${deliveryId}`);
 }
 
 export async function cancelJob(formData: FormData) {

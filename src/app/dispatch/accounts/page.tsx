@@ -8,7 +8,7 @@ export default async function AccountsPage() {
 
   const accounts = await prisma.account.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { jobs: true, users: true } } },
+    include: { _count: { select: { jobs: true } } },
   });
 
   return (
@@ -48,7 +48,6 @@ export default async function AccountsPage() {
           >
             <span className="font-display font-bold text-graphite-950">{a.name}</span>
             <span className="text-sm text-graphite-900/50">
-              {a._count.users} user{a._count.users !== 1 ? "s" : ""} &middot;{" "}
               {a._count.jobs} job{a._count.jobs !== 1 ? "s" : ""}
             </span>
           </Link>

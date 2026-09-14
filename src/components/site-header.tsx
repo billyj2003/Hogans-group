@@ -9,17 +9,15 @@ export async function SiteHeader() {
   const homeHref = session?.user ? homeForRole(session.user.role) : "/";
 
   const navLinks =
-    session?.user?.role === "CUSTOMER"
-      ? [{ href: "/portal", label: "My Deliveries" }]
-      : session?.user?.role === "DRIVER"
-        ? [{ href: "/driver", label: "My Jobs" }]
-        : isStaff
-          ? [
-              { href: "/dispatch", label: "Dispatch" },
-              { href: "/dispatch/accounts", label: "Accounts" },
-              { href: "/dispatch/drivers", label: "Drivers" },
-            ]
-          : [];
+    session?.user?.role === "DRIVER"
+      ? [{ href: "/driver", label: "My Jobs" }]
+      : isStaff
+        ? [
+            { href: "/dispatch", label: "Dispatch" },
+            { href: "/dispatch/accounts", label: "Accounts" },
+            { href: "/dispatch/drivers", label: "Drivers" },
+          ]
+        : [];
 
   return (
     <header className="sticky top-0 z-20 border-b border-graphite-950/10 bg-graphite-950 text-concrete-100">
@@ -61,7 +59,7 @@ export async function SiteHeader() {
               href="/login"
               className="rounded bg-orange-500 px-4 py-1.5 font-medium text-graphite-950 transition hover:bg-orange-600"
             >
-              Portal Log in
+              Staff Log in
             </Link>
           )}
         </div>

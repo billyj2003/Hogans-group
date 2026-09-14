@@ -121,8 +121,6 @@ export async function driverCompleteDelivery(formData: FormData) {
   revalidatePath("/driver");
   revalidatePath("/dispatch");
   revalidatePath(`/dispatch/jobs/${delivery.jobId}`);
-  revalidatePath(`/portal/jobs/${delivery.jobId}`);
-  revalidatePath(`/portal/jobs/${delivery.jobId}/deliveries/${deliveryId}`);
 }
 
 export async function reportPosition(formData: FormData) {
