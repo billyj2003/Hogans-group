@@ -80,8 +80,13 @@ export default async function DispatchDashboard({
         <AutoRefresh intervalSeconds={20} />
       </div>
 
-      <div className="mt-8 rounded-lg border border-graphite-950/10 bg-white p-6">
-        <h2 className="font-display text-lg font-bold text-graphite-950">New job</h2>
+      <details className="mt-8 rounded-lg border border-graphite-950/10 bg-white p-6 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between font-display text-lg font-bold text-graphite-950">
+          <span>New job</span>
+          <span className="rounded bg-orange-500 px-3 py-1 text-xs font-medium text-graphite-950">
+            + Create
+          </span>
+        </summary>
         <form action={createJob} className="mt-4 grid gap-3 sm:grid-cols-3">
           <select
             name="accountId"
@@ -148,81 +153,9 @@ export default async function DispatchDashboard({
             Create job
           </button>
         </form>
-      </div>
+      </details>
 
-      <form
-        method="get"
-        className="mt-8 flex flex-wrap items-end gap-3 rounded-lg border border-graphite-950/10 bg-white p-4"
-      >
-        <div className="flex-1 min-w-[200px]">
-          <label className="text-xs font-medium text-graphite-900/60">
-            Search account, docket, or site
-          </label>
-          <input
-            name="q"
-            defaultValue={q}
-            className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-graphite-900/60">Status</label>
-          <select
-            name="status"
-            defaultValue={status ?? ""}
-            className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
-          >
-            <option value="">Any</option>
-            <option value="OPEN">Open</option>
-            <option value="COMPLETE">Complete</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-graphite-900/60">Category</label>
-          <select
-            name="category"
-            defaultValue={category ?? ""}
-            className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
-          >
-            <option value="">Any</option>
-            <option value="AGGREGATES">Aggregates</option>
-            <option value="ASPHALT">Asphalt</option>
-            <option value="CONCRETE">Concrete</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-graphite-900/60">Expected from</label>
-          <input
-            type="date"
-            name="from"
-            defaultValue={from}
-            className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-graphite-900/60">Expected to</label>
-          <input
-            type="date"
-            name="to"
-            defaultValue={to}
-            className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          className="rounded bg-graphite-950 px-4 py-1.5 text-sm font-medium text-concrete-100 hover:bg-graphite-800"
-        >
-          Filter
-        </button>
-        {(q || status || category || from || to) && (
-          <Link href="/dispatch" className="text-sm text-graphite-900/60 underline">
-            Reset
-          </Link>
-        )}
-      </form>
-
-      <div className="mt-3 flex gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link
           href={presetParams(past30, today)}
           className="rounded-full border border-graphite-950/15 px-3 py-1 text-xs font-medium text-graphite-900 hover:border-orange-500"
@@ -242,6 +175,83 @@ export default async function DispatchDashboard({
           Tomorrow
         </Link>
       </div>
+
+      <details
+        className="mt-3 rounded-lg border border-graphite-950/10 bg-white p-4 [&_summary::-webkit-details-marker]:hidden"
+        open={Boolean(q || status || category || from || to)}
+      >
+        <summary className="cursor-pointer list-none text-sm font-medium text-graphite-900">
+          Filters{(q || status || category || from || to) && " (active)"}
+        </summary>
+        <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs font-medium text-graphite-900/60">
+              Search account, docket, or site
+            </label>
+            <input
+              name="q"
+              defaultValue={q}
+              className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-graphite-900/60">Status</label>
+            <select
+              name="status"
+              defaultValue={status ?? ""}
+              className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            >
+              <option value="">Any</option>
+              <option value="OPEN">Open</option>
+              <option value="COMPLETE">Complete</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-graphite-900/60">Category</label>
+            <select
+              name="category"
+              defaultValue={category ?? ""}
+              className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            >
+              <option value="">Any</option>
+              <option value="AGGREGATES">Aggregates</option>
+              <option value="ASPHALT">Asphalt</option>
+              <option value="CONCRETE">Concrete</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-graphite-900/60">Expected from</label>
+            <input
+              type="date"
+              name="from"
+              defaultValue={from}
+              className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-graphite-900/60">Expected to</label>
+            <input
+              type="date"
+              name="to"
+              defaultValue={to}
+              className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded bg-graphite-950 px-4 py-1.5 text-sm font-medium text-concrete-100 hover:bg-graphite-800"
+          >
+            Filter
+          </button>
+          {(q || status || category || from || to) && (
+            <Link href="/dispatch" className="text-sm text-graphite-900/60 underline">
+              Reset
+            </Link>
+          )}
+        </form>
+      </details>
 
       <div className="mt-8 space-y-3">
         {jobs.length === 0 && (
