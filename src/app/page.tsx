@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { homeForRole } from "@/lib/require-role";
+import { HoganLogo } from "@/components/hogan-logo";
 
 export default async function HomePage() {
   const session = await auth();
@@ -24,14 +25,7 @@ export default async function HomePage() {
 
         <div className="h-1.5 diagonal-hazard" />
         <div className="relative mx-auto max-w-4xl px-6 py-28 text-center">
-          <Image
-            src="/hogan-logo-light.png"
-            alt="Hogan"
-            width={180}
-            height={47}
-            className="mx-auto h-10 w-auto"
-            priority
-          />
+          <HoganLogo light className="justify-center text-4xl sm:text-5xl" />
           <h1 className="mt-6 font-display text-5xl font-bold leading-tight sm:text-6xl">
             Delivery Portal
           </h1>

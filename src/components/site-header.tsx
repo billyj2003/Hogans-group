@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { homeForRole } from "@/lib/require-role";
 import { MobileNav } from "@/components/mobile-nav";
+import { HoganLogo } from "@/components/hogan-logo";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -26,14 +26,7 @@ export async function SiteHeader() {
         <div className="flex items-center gap-3">
           <MobileNav links={navLinks} />
           <Link href={homeHref} className="flex items-center">
-            <Image
-              src="/hogan-logo-light.png"
-              alt="Hogan"
-              width={110}
-              height={29}
-              className="h-6 w-auto sm:h-7"
-              priority
-            />
+            <HoganLogo light className="text-xl sm:text-2xl" />
           </Link>
         </div>
 
