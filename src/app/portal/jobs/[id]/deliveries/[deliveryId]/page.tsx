@@ -18,48 +18,48 @@ const statusLabel: Record<string, string> = {
 export default async function PortalDeliveryDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; deliveryId: string }>;
 }) {
   const session = await requireCustomer();
-  const { id } = await params;
+  const { id: jobId, deliveryId } = await params;
 
   const delivery = await prisma.delivery.findUnique({
-    where: { id },
+    where: { id: deliveryId },
     include: {
+      job: true,
       driver: true,
       events: { orderBy: { createdAt: "asc" } },
       positions: { orderBy: { recordedAt: "asc" } },
     },
   });
-  if (!delivery || delivery.accountId !== session.user.accountId) notFound();
+  if (
+    !delivery ||
+    delivery.jobId !== jobId ||
+    delivery.job.accountId !== session.user.accountId
+  ) {
+    notFound();
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="flex items-center justify-between">
+      <Link
+        href={`/portal/jobs/${jobId}`}
+        className="text-sm text-graphite-900/50 hover:text-orange-600"
+      >
+        &larr; {delivery.job.material}
+      </Link>
+      <div className="mt-2 flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
           {delivery.status}
         </p>
         <AutoRefresh intervalSeconds={20} />
       </div>
       <h1 className="mt-2 font-display text-3xl font-bold text-graphite-950">
-        {delivery.material}
+        {delivery.quantity} {delivery.job.unit}
       </h1>
+      <p className="mt-1 text-graphite-900/60">{delivery.job.siteAddress}</p>
 
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <div>
-          <dt className="text-graphite-900/50">Quantity</dt>
-          <dd className="font-medium text-graphite-950">
-            {delivery.quantity} {delivery.unit}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Site address</dt>
-          <dd className="font-medium text-graphite-950">{delivery.siteAddress}</dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Docket</dt>
-          <dd className="font-medium text-graphite-950">{delivery.docketNumber ?? "—"}</dd>
-        </div>
         <div>
           <dt className="text-graphite-900/50">Vehicle / driver</dt>
           <dd className="font-medium text-graphite-950">
@@ -67,15 +67,13 @@ export default async function PortalDeliveryDetailPage({
           </dd>
         </div>
         <div>
+          <dt className="text-graphite-900/50">Docket / PO</dt>
+          <dd className="font-medium text-graphite-950">{delivery.job.docketNumber ?? "—"}</dd>
+        </div>
+        <div>
           <dt className="text-graphite-900/50">Ordered</dt>
           <dd className="font-medium text-graphite-950">
             {format(delivery.orderedAt, "d MMM yyyy HH:mm")}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Expected</dt>
-          <dd className="font-medium text-graphite-950">
-            {delivery.expectedDate ? format(delivery.expectedDate, "d MMM yyyy HH:mm") : "—"}
           </dd>
         </div>
       </dl>
@@ -88,7 +86,7 @@ export default async function PortalDeliveryDetailPage({
           <p className="mt-2 text-sm text-graphite-900/70">
             Delivered {delivery.deliveredAt && format(delivery.deliveredAt, "d MMM yyyy HH:mm")}
             {delivery.deliveredQuantity != null
-              ? ` · ${delivery.deliveredQuantity} ${delivery.unit} delivered`
+              ? ` · ${delivery.deliveredQuantity} ${delivery.job.unit} delivered`
               : ""}
             {delivery.podSignedBy ? ` · Signed by ${delivery.podSignedBy}` : ""}
           </p>

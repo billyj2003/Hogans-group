@@ -2,8 +2,10 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { maybeCompleteJob } from "@/lib/complete-job";
 
 type Status = "ORDERED" | "DISPATCHED" | "ON_SITE" | "UNLOADING" | "DELIVERED" | "CANCELLED";
 const VALID_STATUSES: Status[] = [
@@ -14,6 +16,9 @@ const VALID_STATUSES: Status[] = [
   "DELIVERED",
   "CANCELLED",
 ];
+
+type Category = "AGGREGATES" | "ASPHALT" | "CONCRETE" | "OTHER";
+const VALID_CATEGORIES: Category[] = ["AGGREGATES", "ASPHALT", "CONCRETE", "OTHER"];
 
 async function assertStaff() {
   const session = await auth();
@@ -56,6 +61,9 @@ export async function createAccountUser(formData: FormData) {
     throw new Error("Name, email, and a password of at least 6 characters are required.");
   }
 
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("A user with that email already exists.");
+
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({
     data: { name, email, passwordHash, role: "CUSTOMER", accountId },
@@ -77,6 +85,9 @@ export async function createDriver(formData: FormData) {
     throw new Error("Name, email, and a password of at least 6 characters are required.");
   }
 
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("A user with that email already exists.");
+
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({
     data: { name, email, passwordHash, role: "DRIVER" },
@@ -85,32 +96,88 @@ export async function createDriver(formData: FormData) {
   revalidatePath("/dispatch/drivers");
 }
 
-export async function createDelivery(formData: FormData) {
+export async function createJob(formData: FormData) {
   await assertStaff();
 
   const accountId = String(formData.get("accountId"));
+  const categoryRaw = String(formData.get("category") ?? "OTHER");
+  const category = VALID_CATEGORIES.includes(categoryRaw as Category)
+    ? (categoryRaw as Category)
+    : "OTHER";
   const material = String(formData.get("material") ?? "").trim();
   const quantity = Number(formData.get("quantity"));
   const unit = String(formData.get("unit") ?? "").trim();
   const siteAddress = String(formData.get("siteAddress") ?? "").trim();
   const expectedDateRaw = String(formData.get("expectedDate") ?? "").trim();
   const docketNumber = String(formData.get("docketNumber") ?? "").trim() || null;
-  const vehicleReg = String(formData.get("vehicleReg") ?? "").trim() || null;
-  const driverId = String(formData.get("driverId") ?? "").trim() || null;
 
-  if (!accountId || !material || !quantity || !unit || !siteAddress) {
-    throw new Error("Account, material, quantity, unit, and site address are required.");
+  if (!accountId || !material || !unit || !siteAddress) {
+    throw new Error("Account, material, unit, and site address are required.");
+  }
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
   }
 
-  await prisma.delivery.create({
+  const job = await prisma.job.create({
     data: {
       accountId,
+      category,
       material,
       quantity,
       unit,
       siteAddress,
       expectedDate: expectedDateRaw ? new Date(expectedDateRaw) : null,
       docketNumber,
+    },
+  });
+
+  revalidatePath("/dispatch");
+  redirect(`/dispatch/jobs/${job.id}`);
+}
+
+export async function repeatJob(formData: FormData) {
+  await assertStaff();
+
+  const sourceId = String(formData.get("jobId"));
+  const source = await prisma.job.findUnique({ where: { id: sourceId } });
+  if (!source) throw new Error("Original job not found.");
+
+  const job = await prisma.job.create({
+    data: {
+      accountId: source.accountId,
+      category: source.category,
+      material: source.material,
+      quantity: source.quantity,
+      unit: source.unit,
+      siteAddress: source.siteAddress,
+    },
+  });
+
+  revalidatePath("/dispatch");
+  redirect(`/dispatch/jobs/${job.id}`);
+}
+
+export async function addLoad(formData: FormData) {
+  await assertStaff();
+
+  const jobId = String(formData.get("jobId"));
+  const quantityRaw = String(formData.get("quantity") ?? "").trim();
+  const vehicleReg = String(formData.get("vehicleReg") ?? "").trim() || null;
+  const driverId = String(formData.get("driverId") ?? "").trim() || null;
+
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) throw new Error("Job not found.");
+  if (job.status !== "OPEN") throw new Error("This job is no longer open.");
+
+  const quantity = quantityRaw ? Number(quantityRaw) : job.quantity;
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
+  }
+
+  await prisma.delivery.create({
+    data: {
+      jobId,
+      quantity,
       vehicleReg,
       driverId,
       events: { create: { status: "ORDERED" } },
@@ -118,12 +185,14 @@ export async function createDelivery(formData: FormData) {
   });
 
   revalidatePath("/dispatch");
+  revalidatePath(`/dispatch/jobs/${jobId}`);
 }
 
 export async function assignDriver(formData: FormData) {
   await assertStaff();
 
   const deliveryId = String(formData.get("deliveryId"));
+  const jobId = String(formData.get("jobId"));
   const driverId = String(formData.get("driverId") ?? "").trim() || null;
   const vehicleReg = String(formData.get("vehicleReg") ?? "").trim() || null;
 
@@ -133,13 +202,14 @@ export async function assignDriver(formData: FormData) {
   });
 
   revalidatePath("/dispatch");
-  revalidatePath(`/dispatch/deliveries/${deliveryId}`);
+  revalidatePath(`/dispatch/jobs/${jobId}/deliveries/${deliveryId}`);
 }
 
 export async function updateDeliveryStatus(formData: FormData) {
   await assertStaff();
 
   const deliveryId = String(formData.get("deliveryId"));
+  const jobId = String(formData.get("jobId"));
   const status = String(formData.get("status"));
   if (!VALID_STATUSES.includes(status as Status)) {
     throw new Error("Invalid status.");
@@ -170,20 +240,31 @@ export async function updateDeliveryStatus(formData: FormData) {
     data: { ...data, events: { create: { status: status as Status, note } } },
   });
 
+  if (status === "DELIVERED") await maybeCompleteJob(jobId);
+
   revalidatePath("/dispatch");
-  revalidatePath(`/dispatch/deliveries/${deliveryId}`);
-  revalidatePath(`/portal/deliveries/${deliveryId}`);
+  revalidatePath(`/dispatch/jobs/${jobId}`);
+  revalidatePath(`/dispatch/jobs/${jobId}/deliveries/${deliveryId}`);
+  revalidatePath(`/portal/jobs/${jobId}`);
+  revalidatePath(`/portal/jobs/${jobId}/deliveries/${deliveryId}`);
 }
 
 export async function recordProofOfDelivery(formData: FormData) {
   await assertStaff();
 
   const deliveryId = String(formData.get("deliveryId"));
+  const jobId = String(formData.get("jobId"));
   const podSignedBy = String(formData.get("podSignedBy") ?? "").trim();
   const podNote = String(formData.get("podNote") ?? "").trim() || null;
   const deliveredQuantityRaw = String(formData.get("deliveredQuantity") ?? "").trim();
 
   if (!podSignedBy) throw new Error("Signed-by name is required.");
+  if (deliveredQuantityRaw) {
+    const parsed = Number(deliveredQuantityRaw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new Error("Delivered quantity must be a positive number.");
+    }
+  }
 
   const now = new Date();
   const delivery = await prisma.delivery.findUnique({ where: { id: deliveryId } });
@@ -209,7 +290,21 @@ export async function recordProofOfDelivery(formData: FormData) {
     },
   });
 
+  await maybeCompleteJob(jobId);
+
   revalidatePath("/dispatch");
-  revalidatePath(`/dispatch/deliveries/${deliveryId}`);
-  revalidatePath(`/portal/deliveries/${deliveryId}`);
+  revalidatePath(`/dispatch/jobs/${jobId}`);
+  revalidatePath(`/dispatch/jobs/${jobId}/deliveries/${deliveryId}`);
+  revalidatePath(`/portal/jobs/${jobId}`);
+  revalidatePath(`/portal/jobs/${jobId}/deliveries/${deliveryId}`);
+}
+
+export async function cancelJob(formData: FormData) {
+  await assertStaff();
+
+  const jobId = String(formData.get("jobId"));
+  await prisma.job.update({ where: { id: jobId }, data: { status: "CANCELLED" } });
+
+  revalidatePath("/dispatch");
+  revalidatePath(`/dispatch/jobs/${jobId}`);
 }

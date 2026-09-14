@@ -1,5 +1,10 @@
 // Prisma schema for the Hogan Group delivery portal: customer accounts,
-// portal users (customers + staff/admin), and delivery tracking.
+// portal users (customers + staff/admin), and job/delivery (wagon) tracking.
+//
+// A Job is the overall ask for a site (account, material, total tonnage
+// needed). A Delivery is one wagon/load sent against that Job — its own
+// driver, vehicle, status lifecycle, live GPS tracking, and POD. A Job can
+// have as many Deliveries as it takes to cover the total tonnage.
 
 generator client {
   provider = "prisma-client"
@@ -17,6 +22,12 @@ enum Role {
   DRIVER
 }
 
+enum JobStatus {
+  OPEN
+  COMPLETE
+  CANCELLED
+}
+
 enum DeliveryStatus {
   ORDERED
   DISPATCHED
@@ -26,14 +37,21 @@ enum DeliveryStatus {
   CANCELLED
 }
 
+enum MaterialCategory {
+  AGGREGATES
+  ASPHALT
+  CONCRETE
+  OTHER
+}
+
 model Account {
   id        String   @id @default(cuid())
   name      String
   siteNotes String?
   createdAt DateTime @default(now())
 
-  users      User[]
-  deliveries Delivery[]
+  users User[]
+  jobs  Job[]
 }
 
 model User {
@@ -49,22 +67,35 @@ model User {
   driverDeliveries Delivery[] @relation("DriverDeliveries")
 }
 
+model Job {
+  id            String           @id @default(cuid())
+  accountId     String
+  account       Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  status        JobStatus        @default(OPEN)
+  category      MaterialCategory @default(OTHER)
+  material      String
+  quantity      Float
+  unit          String
+  siteAddress   String
+  docketNumber  String?
+  expectedDate  DateTime?
+  createdAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  deliveries Delivery[]
+}
+
 model Delivery {
   id                String         @id @default(cuid())
-  accountId         String
-  account           Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  jobId             String
+  job               Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
   status            DeliveryStatus @default(ORDERED)
-  material          String
   quantity          Float
   deliveredQuantity Float?
-  unit              String
-  siteAddress       String
-  docketNumber      String?
   vehicleReg        String?
   driverId          String?
   driver            User?          @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
   orderedAt         DateTime       @default(now())
-  expectedDate      DateTime?
   dispatchedAt      DateTime?
   onSiteAt          DateTime?
   unloadingAt       DateTime?

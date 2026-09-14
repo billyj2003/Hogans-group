@@ -16,7 +16,7 @@ export async function GET(
   const { id } = await params;
   const delivery = await prisma.delivery.findUnique({
     where: { id },
-    include: { account: true, driver: true },
+    include: { job: { include: { account: true } }, driver: true },
   });
 
   if (!delivery) {
@@ -24,7 +24,7 @@ export async function GET(
   }
 
   const isStaff = session.user.role === "STAFF" || session.user.role === "ADMIN";
-  const isOwner = session.user.accountId === delivery.accountId;
+  const isOwner = session.user.accountId === delivery.job.accountId;
   if (!isStaff && !isOwner) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -53,16 +53,18 @@ export async function GET(
   line("HOGAN GROUP", { bold: true, size: 18, gap: 24 });
   line("Proof of Delivery", { bold: true, size: 13, gap: 28 });
 
-  line(`Account: ${delivery.account.name}`);
-  line(`Material: ${delivery.material}`);
-  line(`Quantity ordered: ${delivery.quantity} ${delivery.unit}`);
+  line(`Account: ${delivery.job.account.name}`);
+  line(`Material: ${delivery.job.material}`);
+  line(`Quantity planned: ${delivery.quantity} ${delivery.job.unit}`);
   line(
     `Quantity delivered: ${
-      delivery.deliveredQuantity != null ? `${delivery.deliveredQuantity} ${delivery.unit}` : "—"
+      delivery.deliveredQuantity != null
+        ? `${delivery.deliveredQuantity} ${delivery.job.unit}`
+        : "—"
     }`
   );
-  line(`Site address: ${delivery.siteAddress}`);
-  line(`Docket: ${delivery.docketNumber ?? "—"}`);
+  line(`Site address: ${delivery.job.siteAddress}`);
+  line(`Docket / PO: ${delivery.job.docketNumber ?? "—"}`);
   line(`Vehicle: ${delivery.vehicleReg ?? "—"}${delivery.driver ? ` (${delivery.driver.name})` : ""}`);
   y -= 10;
   line(`Delivered: ${delivery.deliveredAt ? format(delivery.deliveredAt, "d MMM yyyy HH:mm") : "—"}`);
@@ -76,7 +78,7 @@ export async function GET(
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="POD-${delivery.docketNumber ?? delivery.id}.pdf"`,
+      "Content-Disposition": `attachment; filename="POD-${delivery.job.docketNumber ?? delivery.id}.pdf"`,
     },
   });
 }

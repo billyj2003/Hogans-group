@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { format } from "date-fns";
 import { requireDriver } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 
@@ -20,14 +19,14 @@ export default async function DriverJobsPage() {
       driverId: session.user.id,
       status: { notIn: ["DELIVERED", "CANCELLED"] },
     },
-    orderBy: { expectedDate: "asc" },
-    include: { account: true },
+    orderBy: { createdAt: "asc" },
+    include: { job: { include: { account: true } } },
   });
 
   return (
     <div className="mx-auto max-w-xl px-6 py-16">
       <h1 className="font-display text-3xl font-bold text-graphite-950">My Jobs</h1>
-      <p className="mt-2 text-graphite-900/60">Today&apos;s assigned deliveries.</p>
+      <p className="mt-2 text-graphite-900/60">Today&apos;s assigned wagons.</p>
 
       {deliveries.length === 0 ? (
         <p className="mt-8 text-graphite-900/60">No jobs assigned right now.</p>
@@ -45,17 +44,12 @@ export default async function DriverJobsPage() {
                 {d.status.replace("_", " ")}
               </span>
               <p className="mt-2 font-display text-lg font-bold text-graphite-950">
-                {d.material}
+                {d.job.material}
               </p>
               <p className="text-sm text-graphite-900/60">
-                {d.account.name} &middot; {d.quantity} {d.unit}
+                {d.job.account.name} &middot; {d.quantity} {d.job.unit}
               </p>
-              <p className="mt-1 text-sm text-graphite-900/60">{d.siteAddress}</p>
-              {d.expectedDate && (
-                <p className="mt-1 text-xs text-graphite-900/50">
-                  Expected {format(d.expectedDate, "d MMM HH:mm")}
-                </p>
-              )}
+              <p className="mt-1 text-sm text-graphite-900/60">{d.job.siteAddress}</p>
             </Link>
           ))}
         </div>

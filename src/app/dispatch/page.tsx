@@ -1,40 +1,36 @@
 import Link from "next/link";
-import { format } from "date-fns";
+import { addDays, format, startOfDay } from "date-fns";
 import { requireStaff } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { createDelivery, updateDeliveryStatus } from "./actions";
+import { createJob } from "./actions";
 
-const statusColor: Record<string, string> = {
-  ORDERED: "bg-concrete-200 text-graphite-900",
-  DISPATCHED: "bg-orange-500/20 text-orange-600",
-  ON_SITE: "bg-orange-500/20 text-orange-600",
-  UNLOADING: "bg-orange-500/20 text-orange-600",
-  DELIVERED: "bg-green-100 text-green-700",
+const categoryLabel: Record<string, string> = {
+  AGGREGATES: "Aggregates",
+  ASPHALT: "Asphalt",
+  CONCRETE: "Concrete",
+  OTHER: "Other",
+};
+
+const jobStatusColor: Record<string, string> = {
+  OPEN: "bg-orange-500/20 text-orange-600",
+  COMPLETE: "bg-green-100 text-green-700",
   CANCELLED: "bg-red-100 text-red-700",
-};
-
-const nextStatus: Record<string, string> = {
-  ORDERED: "DISPATCHED",
-  DISPATCHED: "ON_SITE",
-  ON_SITE: "UNLOADING",
-  UNLOADING: "DELIVERED",
-};
-
-const nextStatusLabel: Record<string, string> = {
-  ORDERED: "Mark dispatched",
-  DISPATCHED: "Mark on site",
-  ON_SITE: "Mark unloading",
-  UNLOADING: "Mark delivered",
 };
 
 export default async function DispatchDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    category?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   await requireStaff();
-  const { q, status, from, to } = await searchParams;
+  const { q, status, category, from, to } = await searchParams;
 
   const where: Record<string, unknown> = {};
   if (q) {
@@ -46,6 +42,7 @@ export default async function DispatchDashboard({
     ];
   }
   if (status) where.status = status;
+  if (category) where.category = category;
   if (from || to) {
     where.expectedDate = {
       ...(from ? { gte: new Date(from) } : {}),
@@ -53,15 +50,27 @@ export default async function DispatchDashboard({
     };
   }
 
-  const [deliveries, accounts, drivers] = await Promise.all([
-    prisma.delivery.findMany({
+  const today = format(startOfDay(new Date()), "yyyy-MM-dd");
+  const tomorrow = format(addDays(startOfDay(new Date()), 1), "yyyy-MM-dd");
+  const past30 = format(addDays(startOfDay(new Date()), -30), "yyyy-MM-dd");
+  const presetParams = (f: string, t: string) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (status) p.set("status", status);
+    if (category) p.set("category", category);
+    p.set("from", f);
+    p.set("to", t);
+    return `/dispatch?${p.toString()}`;
+  };
+
+  const [jobs, accounts] = await Promise.all([
+    prisma.job.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { account: true, driver: true },
+      include: { account: true, deliveries: true },
       take: 50,
     }),
     prisma.account.findMany({ orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { role: "DRIVER" }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -72,8 +81,8 @@ export default async function DispatchDashboard({
       </div>
 
       <div className="mt-8 rounded-lg border border-graphite-950/10 bg-white p-6">
-        <h2 className="font-display text-lg font-bold text-graphite-950">New delivery order</h2>
-        <form action={createDelivery} className="mt-4 grid gap-3 sm:grid-cols-3">
+        <h2 className="font-display text-lg font-bold text-graphite-950">New job</h2>
+        <form action={createJob} className="mt-4 grid gap-3 sm:grid-cols-3">
           <select
             name="accountId"
             required
@@ -86,17 +95,27 @@ export default async function DispatchDashboard({
               </option>
             ))}
           </select>
+          <select
+            name="category"
+            defaultValue="OTHER"
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          >
+            <option value="AGGREGATES">Aggregates</option>
+            <option value="ASPHALT">Asphalt</option>
+            <option value="CONCRETE">Concrete</option>
+            <option value="OTHER">Other</option>
+          </select>
           <input
             name="material"
             placeholder="Material"
             required
-            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-2"
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
           />
           <input
             type="number"
             step="0.1"
             name="quantity"
-            placeholder="Quantity"
+            placeholder="Total quantity needed"
             required
             className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
           />
@@ -115,34 +134,18 @@ export default async function DispatchDashboard({
             name="siteAddress"
             placeholder="Site address"
             required
-            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-3"
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-2"
           />
           <input
             name="docketNumber"
-            placeholder="Docket number (optional)"
+            placeholder="Docket / PO number (optional)"
             className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
           />
-          <input
-            name="vehicleReg"
-            placeholder="Vehicle reg (optional)"
-            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
-          />
-          <select
-            name="driverId"
-            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
-          >
-            <option value="">Assign driver later&hellip;</option>
-            {drivers.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
           <button
             type="submit"
             className="rounded bg-orange-500 px-6 py-2.5 text-sm font-medium text-graphite-950 hover:bg-orange-600 sm:col-span-3"
           >
-            Create delivery
+            Create job
           </button>
         </form>
       </div>
@@ -169,12 +172,23 @@ export default async function DispatchDashboard({
             className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
           >
             <option value="">Any</option>
-            <option value="ORDERED">Ordered</option>
-            <option value="DISPATCHED">Dispatched</option>
-            <option value="ON_SITE">On site</option>
-            <option value="UNLOADING">Unloading</option>
-            <option value="DELIVERED">Delivered</option>
+            <option value="OPEN">Open</option>
+            <option value="COMPLETE">Complete</option>
             <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-graphite-900/60">Category</label>
+          <select
+            name="category"
+            defaultValue={category ?? ""}
+            className="mt-1 rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+          >
+            <option value="">Any</option>
+            <option value="AGGREGATES">Aggregates</option>
+            <option value="ASPHALT">Asphalt</option>
+            <option value="CONCRETE">Concrete</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
         <div>
@@ -201,57 +215,72 @@ export default async function DispatchDashboard({
         >
           Filter
         </button>
-        {(q || status || from || to) && (
+        {(q || status || category || from || to) && (
           <Link href="/dispatch" className="text-sm text-graphite-900/60 underline">
             Reset
           </Link>
         )}
       </form>
 
-      <div className="mt-8 space-y-3">
-        {deliveries.length === 0 && (
-          <p className="text-sm text-graphite-900/50">No deliveries match those filters.</p>
-        )}
-        {deliveries.map((d) => (
-          <div
-            key={d.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-graphite-950/10 bg-white p-4"
-          >
-            <div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor[d.status]}`}
-                >
-                  {d.status.replace("_", " ")}
-                </span>
-                <Link
-                  href={`/dispatch/deliveries/${d.id}`}
-                  className="font-display font-bold text-graphite-950 hover:text-orange-600"
-                >
-                  {d.material}
-                </Link>
-              </div>
-              <p className="mt-1 text-sm text-graphite-900/60">
-                {d.account.name} &middot; {d.quantity} {d.unit} &middot; {d.siteAddress}
-                {d.driver ? ` · ${d.driver.name}` : ""}
-                {d.expectedDate ? ` · Expected ${format(d.expectedDate, "d MMM HH:mm")}` : ""}
-              </p>
-            </div>
+      <div className="mt-3 flex gap-2">
+        <Link
+          href={presetParams(past30, today)}
+          className="rounded-full border border-graphite-950/15 px-3 py-1 text-xs font-medium text-graphite-900 hover:border-orange-500"
+        >
+          Past 30 days
+        </Link>
+        <Link
+          href={presetParams(today, today)}
+          className="rounded-full border border-graphite-950/15 px-3 py-1 text-xs font-medium text-graphite-900 hover:border-orange-500"
+        >
+          Today
+        </Link>
+        <Link
+          href={presetParams(tomorrow, tomorrow)}
+          className="rounded-full border border-graphite-950/15 px-3 py-1 text-xs font-medium text-graphite-900 hover:border-orange-500"
+        >
+          Tomorrow
+        </Link>
+      </div>
 
-            {nextStatus[d.status] && (
-              <form action={updateDeliveryStatus} className="flex items-center gap-2">
-                <input type="hidden" name="deliveryId" value={d.id} />
-                <input type="hidden" name="status" value={nextStatus[d.status]} />
-                <button
-                  type="submit"
-                  className="rounded border border-graphite-950/20 px-3 py-1.5 text-xs font-medium text-graphite-900 hover:border-orange-500 hover:text-orange-600"
-                >
-                  {nextStatusLabel[d.status]}
-                </button>
-              </form>
-            )}
-          </div>
-        ))}
+      <div className="mt-8 space-y-3">
+        {jobs.length === 0 && (
+          <p className="text-sm text-graphite-900/50">No jobs match those filters.</p>
+        )}
+        {jobs.map((j) => {
+          const deliveredTotal = j.deliveries
+            .filter((d) => d.status === "DELIVERED")
+            .reduce((sum, d) => sum + (d.deliveredQuantity ?? d.quantity), 0);
+          return (
+            <Link
+              key={j.id}
+              href={`/dispatch/jobs/${j.id}`}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-graphite-950/10 bg-white p-4 transition hover:border-orange-500"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${jobStatusColor[j.status]}`}
+                  >
+                    {j.status}
+                  </span>
+                  <span className="rounded bg-graphite-950/5 px-2 py-0.5 text-xs font-medium text-graphite-900/60">
+                    {categoryLabel[j.category]}
+                  </span>
+                  <span className="font-display font-bold text-graphite-950">{j.material}</span>
+                </div>
+                <p className="mt-1 text-sm text-graphite-900/60">
+                  {j.account.name} &middot; {deliveredTotal}/{j.quantity} {j.unit} &middot;{" "}
+                  {j.siteAddress}
+                  {j.expectedDate ? ` · Expected ${format(j.expectedDate, "d MMM HH:mm")}` : ""}
+                </p>
+              </div>
+              <span className="text-sm text-graphite-900/50">
+                {j.deliveries.length} wagon{j.deliveries.length === 1 ? "" : "s"}
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

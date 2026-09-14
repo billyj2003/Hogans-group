@@ -3,7 +3,12 @@ import { format } from "date-fns";
 import { requireDriver } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { GeoReporter } from "@/components/geo-reporter";
-import { driverCompleteDelivery, driverMarkOnSite, driverMarkUnloading } from "../../actions";
+import {
+  driverCompleteDelivery,
+  driverMarkDispatched,
+  driverMarkOnSite,
+  driverMarkUnloading,
+} from "../../actions";
 
 export default async function DriverDeliveryDetailPage({
   params,
@@ -15,7 +20,7 @@ export default async function DriverDeliveryDetailPage({
 
   const delivery = await prisma.delivery.findUnique({
     where: { id },
-    include: { account: true },
+    include: { job: { include: { account: true } } },
   });
   if (!delivery || delivery.driverId !== session.user.id) notFound();
 
@@ -27,9 +32,9 @@ export default async function DriverDeliveryDetailPage({
         {delivery.status.replace("_", " ")}
       </p>
       <h1 className="mt-2 font-display text-2xl font-bold text-graphite-950">
-        {delivery.material}
+        {delivery.job.material}
       </h1>
-      <p className="mt-1 text-graphite-900/60">{delivery.account.name}</p>
+      <p className="mt-1 text-graphite-900/60">{delivery.job.account.name}</p>
 
       <div className="mt-4">
         <GeoReporter deliveryId={delivery.id} active={isTracking} />
@@ -37,19 +42,19 @@ export default async function DriverDeliveryDetailPage({
 
       <dl className="mt-6 space-y-3 text-sm">
         <div>
-          <dt className="text-graphite-900/50">Quantity ordered</dt>
+          <dt className="text-graphite-900/50">Planned quantity</dt>
           <dd className="font-medium text-graphite-950">
-            {delivery.quantity} {delivery.unit}
+            {delivery.quantity} {delivery.job.unit}
           </dd>
         </div>
         <div>
           <dt className="text-graphite-900/50">Site address</dt>
-          <dd className="font-medium text-graphite-950">{delivery.siteAddress}</dd>
+          <dd className="font-medium text-graphite-950">{delivery.job.siteAddress}</dd>
         </div>
-        {delivery.docketNumber && (
+        {delivery.job.docketNumber && (
           <div>
-            <dt className="text-graphite-900/50">Docket</dt>
-            <dd className="font-medium text-graphite-950">{delivery.docketNumber}</dd>
+            <dt className="text-graphite-900/50">Docket / PO</dt>
+            <dd className="font-medium text-graphite-950">{delivery.job.docketNumber}</dd>
           </div>
         )}
         {delivery.vehicleReg && (
@@ -58,17 +63,18 @@ export default async function DriverDeliveryDetailPage({
             <dd className="font-medium text-graphite-950">{delivery.vehicleReg}</dd>
           </div>
         )}
-        {delivery.expectedDate && (
-          <div>
-            <dt className="text-graphite-900/50">Expected</dt>
-            <dd className="font-medium text-graphite-950">
-              {format(delivery.expectedDate, "d MMM yyyy HH:mm")}
-            </dd>
-          </div>
-        )}
       </dl>
 
       <div className="mt-8 space-y-3">
+        {delivery.status === "ORDERED" && (
+          <form action={driverMarkDispatched}>
+            <input type="hidden" name="deliveryId" value={delivery.id} />
+            <button className="w-full rounded bg-graphite-950 py-4 text-base font-bold text-concrete-100 hover:bg-graphite-800">
+              Start delivery (mark dispatched)
+            </button>
+          </form>
+        )}
+
         {delivery.status === "DISPATCHED" && (
           <form action={driverMarkOnSite}>
             <input type="hidden" name="deliveryId" value={delivery.id} />
@@ -95,7 +101,7 @@ export default async function DriverDeliveryDetailPage({
             <input type="hidden" name="deliveryId" value={delivery.id} />
             <div>
               <label className="text-sm font-medium text-graphite-900">
-                Exact tonnage delivered
+                Exact {delivery.job.unit} delivered
               </label>
               <input
                 type="number"
@@ -137,7 +143,7 @@ export default async function DriverDeliveryDetailPage({
           <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-graphite-900/70">
             Delivered {delivery.deliveredAt && format(delivery.deliveredAt, "d MMM HH:mm")}
             {delivery.deliveredQuantity != null &&
-              ` · ${delivery.deliveredQuantity} ${delivery.unit} delivered`}
+              ` · ${delivery.deliveredQuantity} ${delivery.job.unit} delivered`}
           </div>
         )}
       </div>

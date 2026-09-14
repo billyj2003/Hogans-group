@@ -16,7 +16,7 @@ export default async function AccountDetailPage({
     where: { id },
     include: {
       users: true,
-      deliveries: { orderBy: { createdAt: "desc" } },
+      jobs: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!account) notFound();
@@ -73,15 +73,15 @@ export default async function AccountDetailPage({
       </div>
 
       <div className="mt-10">
-        <h2 className="font-display text-lg font-bold text-graphite-950">Deliveries</h2>
+        <h2 className="font-display text-lg font-bold text-graphite-950">Jobs</h2>
         <ul className="mt-3 space-y-2">
-          {account.deliveries.map((d) => (
-            <li key={d.id} className="text-sm text-graphite-900/70">
-              {format(d.createdAt, "d MMM")} &middot; {d.material} &middot; {d.status}
+          {account.jobs.map((j) => (
+            <li key={j.id} className="text-sm text-graphite-900/70">
+              {format(j.createdAt, "d MMM")} &middot; {j.material} &middot; {j.status}
             </li>
           ))}
-          {account.deliveries.length === 0 && (
-            <p className="text-sm text-graphite-900/50">No deliveries yet.</p>
+          {account.jobs.length === 0 && (
+            <p className="text-sm text-graphite-900/50">No jobs yet.</p>
           )}
         </ul>
       </div>

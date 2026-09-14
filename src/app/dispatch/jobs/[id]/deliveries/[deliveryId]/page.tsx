@@ -5,7 +5,7 @@ import { requireStaff } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { LiveMap } from "@/components/live-map";
-import { assignDriver, recordProofOfDelivery, updateDeliveryStatus } from "../../actions";
+import { assignDriver, recordProofOfDelivery, updateDeliveryStatus } from "../../../../actions";
 
 const statusLabel: Record<string, string> = {
   ORDERED: "Ordered",
@@ -19,16 +19,16 @@ const statusLabel: Record<string, string> = {
 export default async function DispatchDeliveryDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; deliveryId: string }>;
 }) {
   await requireStaff();
-  const { id } = await params;
+  const { id: jobId, deliveryId } = await params;
 
   const [delivery, drivers] = await Promise.all([
     prisma.delivery.findUnique({
-      where: { id },
+      where: { id: deliveryId },
       include: {
-        account: true,
+        job: { include: { account: true } },
         driver: true,
         events: { orderBy: { createdAt: "asc" } },
         positions: { orderBy: { recordedAt: "asc" } },
@@ -36,35 +36,32 @@ export default async function DispatchDeliveryDetailPage({
     }),
     prisma.user.findMany({ where: { role: "DRIVER" }, orderBy: { name: "asc" } }),
   ]);
-  if (!delivery) notFound();
+  if (!delivery || delivery.jobId !== jobId) notFound();
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="flex items-center justify-between">
+      <Link href={`/dispatch/jobs/${jobId}`} className="text-sm text-graphite-900/50 hover:text-orange-600">
+        &larr; {delivery.job.material}
+      </Link>
+      <div className="mt-2 flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
           {delivery.status}
         </p>
         <AutoRefresh intervalSeconds={15} />
       </div>
       <h1 className="mt-2 font-display text-3xl font-bold text-graphite-950">
-        {delivery.material}
+        {delivery.quantity} {delivery.job.unit}
       </h1>
-      <p className="mt-1 text-graphite-900/60">{delivery.account.name}</p>
+      <p className="mt-1 text-graphite-900/60">
+        {delivery.job.account.name} &middot; {delivery.job.siteAddress}
+      </p>
 
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div>
-          <dt className="text-graphite-900/50">Quantity</dt>
+          <dt className="text-graphite-900/50">Planned quantity</dt>
           <dd className="font-medium text-graphite-950">
-            {delivery.quantity} {delivery.unit}
+            {delivery.quantity} {delivery.job.unit}
           </dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Site address</dt>
-          <dd className="font-medium text-graphite-950">{delivery.siteAddress}</dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Docket</dt>
-          <dd className="font-medium text-graphite-950">{delivery.docketNumber ?? "—"}</dd>
         </div>
         <div>
           <dt className="text-graphite-900/50">Vehicle / driver</dt>
@@ -79,10 +76,8 @@ export default async function DispatchDeliveryDetailPage({
           </dd>
         </div>
         <div>
-          <dt className="text-graphite-900/50">Expected</dt>
-          <dd className="font-medium text-graphite-950">
-            {delivery.expectedDate ? format(delivery.expectedDate, "d MMM yyyy HH:mm") : "—"}
-          </dd>
+          <dt className="text-graphite-900/50">Docket / PO</dt>
+          <dd className="font-medium text-graphite-950">{delivery.job.docketNumber ?? "—"}</dd>
         </div>
       </dl>
 
@@ -91,6 +86,7 @@ export default async function DispatchDeliveryDetailPage({
           <h2 className="text-sm font-bold text-graphite-950">Driver &amp; vehicle</h2>
           <form action={assignDriver} className="mt-2 flex flex-wrap items-center gap-2">
             <input type="hidden" name="deliveryId" value={delivery.id} />
+            <input type="hidden" name="jobId" value={jobId} />
             <select
               name="driverId"
               defaultValue={delivery.driverId ?? ""}
@@ -124,6 +120,7 @@ export default async function DispatchDeliveryDetailPage({
           {delivery.status === "ORDERED" && (
             <form action={updateDeliveryStatus}>
               <input type="hidden" name="deliveryId" value={delivery.id} />
+              <input type="hidden" name="jobId" value={jobId} />
               <input type="hidden" name="status" value="DISPATCHED" />
               <button className="rounded bg-graphite-950 px-5 py-2 text-sm font-medium text-concrete-100 hover:bg-graphite-800">
                 Mark dispatched
@@ -133,6 +130,7 @@ export default async function DispatchDeliveryDetailPage({
           {delivery.status === "DISPATCHED" && (
             <form action={updateDeliveryStatus}>
               <input type="hidden" name="deliveryId" value={delivery.id} />
+              <input type="hidden" name="jobId" value={jobId} />
               <input type="hidden" name="status" value="ON_SITE" />
               <button className="rounded bg-graphite-950 px-5 py-2 text-sm font-medium text-concrete-100 hover:bg-graphite-800">
                 Mark on site
@@ -142,6 +140,7 @@ export default async function DispatchDeliveryDetailPage({
           {delivery.status === "ON_SITE" && (
             <form action={updateDeliveryStatus}>
               <input type="hidden" name="deliveryId" value={delivery.id} />
+              <input type="hidden" name="jobId" value={jobId} />
               <input type="hidden" name="status" value="UNLOADING" />
               <button className="rounded bg-graphite-950 px-5 py-2 text-sm font-medium text-concrete-100 hover:bg-graphite-800">
                 Mark unloading
@@ -150,9 +149,10 @@ export default async function DispatchDeliveryDetailPage({
           )}
           <form action={updateDeliveryStatus}>
             <input type="hidden" name="deliveryId" value={delivery.id} />
+            <input type="hidden" name="jobId" value={jobId} />
             <input type="hidden" name="status" value="CANCELLED" />
             <button className="rounded border border-graphite-950/20 px-5 py-2 text-sm font-medium text-graphite-900 hover:border-red-500 hover:text-red-600">
-              Cancel order
+              Cancel wagon
             </button>
           </form>
         </div>
@@ -165,11 +165,12 @@ export default async function DispatchDeliveryDetailPage({
           </h2>
           <form action={recordProofOfDelivery} className="mt-4 space-y-3">
             <input type="hidden" name="deliveryId" value={delivery.id} />
+            <input type="hidden" name="jobId" value={jobId} />
             <input
               type="number"
               step="0.01"
               name="deliveredQuantity"
-              placeholder={`Exact tonnage delivered (ordered: ${delivery.quantity} ${delivery.unit})`}
+              placeholder={`Exact ${delivery.job.unit} delivered (planned: ${delivery.quantity})`}
               defaultValue={delivery.quantity}
               className="w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
             />
@@ -203,7 +204,7 @@ export default async function DispatchDeliveryDetailPage({
           <p className="mt-2 text-sm text-graphite-900/70">
             Delivered {delivery.deliveredAt && format(delivery.deliveredAt, "d MMM yyyy HH:mm")}
             {delivery.deliveredQuantity != null
-              ? ` · ${delivery.deliveredQuantity} ${delivery.unit} delivered`
+              ? ` · ${delivery.deliveredQuantity} ${delivery.job.unit} delivered`
               : ""}
             {delivery.podSignedBy ? ` · Signed by ${delivery.podSignedBy}` : ""}
           </p>

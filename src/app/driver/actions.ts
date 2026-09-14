@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { maybeCompleteJob } from "@/lib/complete-job";
 
 function formatDuration(ms: number) {
   const mins = Math.round(ms / 60000);
@@ -22,6 +23,25 @@ async function assertAssignedDriver(deliveryId: string) {
     throw new Error("This job is not assigned to you.");
   }
   return { session, delivery };
+}
+
+export async function driverMarkDispatched(formData: FormData) {
+  const deliveryId = String(formData.get("deliveryId"));
+  await assertAssignedDriver(deliveryId);
+
+  const now = new Date();
+  await prisma.delivery.update({
+    where: { id: deliveryId },
+    data: {
+      status: "DISPATCHED",
+      dispatchedAt: now,
+      events: { create: { status: "DISPATCHED" } },
+    },
+  });
+
+  revalidatePath(`/driver/deliveries/${deliveryId}`);
+  revalidatePath("/driver");
+  revalidatePath("/dispatch");
 }
 
 export async function driverMarkOnSite(formData: FormData) {
@@ -69,6 +89,10 @@ export async function driverCompleteDelivery(formData: FormData) {
   if (!deliveredQuantityRaw || !podSignedBy) {
     throw new Error("Delivered quantity and signed-by name are required.");
   }
+  const parsedQuantity = Number(deliveredQuantityRaw);
+  if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+    throw new Error("Delivered quantity must be a positive number.");
+  }
 
   const now = new Date();
   const from = delivery.unloadingAt ?? delivery.onSiteAt ?? delivery.dispatchedAt;
@@ -79,7 +103,7 @@ export async function driverCompleteDelivery(formData: FormData) {
     data: {
       status: "DELIVERED",
       deliveredAt: now,
-      deliveredQuantity: Number(deliveredQuantityRaw),
+      deliveredQuantity: parsedQuantity,
       podSignedBy,
       podNote,
       events: {
@@ -91,10 +115,14 @@ export async function driverCompleteDelivery(formData: FormData) {
     },
   });
 
+  await maybeCompleteJob(delivery.jobId);
+
   revalidatePath(`/driver/deliveries/${deliveryId}`);
   revalidatePath("/driver");
   revalidatePath("/dispatch");
-  revalidatePath(`/portal/deliveries/${deliveryId}`);
+  revalidatePath(`/dispatch/jobs/${delivery.jobId}`);
+  revalidatePath(`/portal/jobs/${delivery.jobId}`);
+  revalidatePath(`/portal/jobs/${delivery.jobId}/deliveries/${deliveryId}`);
 }
 
 export async function reportPosition(formData: FormData) {
