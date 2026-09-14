@@ -5,7 +5,15 @@ import type { Map as LeafletMap } from "leaflet";
 
 export type MapPosition = { lat: number; lng: number; recordedAt: string };
 
-export function LiveMap({ positions }: { positions: MapPosition[] }) {
+export function LiveMap({
+  positions,
+  startLabel = "Dispatched",
+  endLabel,
+}: {
+  positions: MapPosition[];
+  startLabel?: string;
+  endLabel?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
 
@@ -39,10 +47,25 @@ export function LiveMap({ positions }: { positions: MapPosition[] }) {
         html: '<div style="width:16px;height:16px;border-radius:50%;background:#e5590c;border:2px solid white;box-shadow:0 0 0 4px rgba(229,89,12,0.3)"></div>',
       });
 
-      L.marker(latLngs[0], { icon: startIcon }).addTo(map).bindPopup("Dispatched");
+      const startTime = new Date(positions[0].recordedAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const endTime = new Date(latest.recordedAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      L.marker(latLngs[0], { icon: startIcon })
+        .addTo(map)
+        .bindTooltip(`${startTime}<br>${startLabel}`, { permanent: true, direction: "top", className: "livemap-label" });
       L.marker(latLngs[latLngs.length - 1], { icon: currentIcon })
         .addTo(map)
-        .bindPopup(`Last seen ${new Date(latest.recordedAt).toLocaleTimeString()}`);
+        .bindTooltip(`${endTime}<br>${endLabel ?? "Last seen"}`, {
+          permanent: true,
+          direction: "top",
+          className: "livemap-label",
+        });
 
       map.fitBounds(latLngs, { padding: [30, 30] });
     });
@@ -50,7 +73,7 @@ export function LiveMap({ positions }: { positions: MapPosition[] }) {
     return () => {
       cancelled = true;
     };
-  }, [positions]);
+  }, [positions, startLabel, endLabel]);
 
   useEffect(() => {
     return () => {

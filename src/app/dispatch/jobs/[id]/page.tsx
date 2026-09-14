@@ -197,9 +197,21 @@ export default async function DispatchJobDetailPage({
       )}
 
       <div className="mt-10">
-        <h2 className="font-display text-lg font-bold text-graphite-950">
-          Wagons ({job.deliveries.length})
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold text-graphite-950">
+            Wagons ({job.deliveries.length})
+          </h2>
+          {job.deliveries.some((d) => d.status === "DELIVERED") && (
+            <button
+              type="submit"
+              form="pod-select"
+              className="rounded border border-graphite-950/20 px-3 py-1.5 text-xs font-medium text-graphite-900 hover:border-orange-500 hover:text-orange-600"
+            >
+              View selected PODs
+            </button>
+          )}
+        </div>
+        <form id="pod-select" method="get" action={`/api/jobs/${job.id}/pods`} />
         {job.deliveries.length === 0 ? (
           <p className="mt-3 text-sm text-graphite-900/50">No wagons sent yet.</p>
         ) : (
@@ -209,26 +221,38 @@ export default async function DispatchJobDetailPage({
                 key={d.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-graphite-950/10 bg-white p-3 text-sm"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor[d.status]}`}
-                    >
-                      {d.status.replace("_", " ")}
-                    </span>
-                    <Link
-                      href={`/dispatch/jobs/${job.id}/deliveries/${d.id}`}
-                      className="font-medium text-graphite-950 hover:text-orange-600"
-                    >
-                      {d.status === "DELIVERED" && d.deliveredQuantity != null
-                        ? d.deliveredQuantity
-                        : d.quantity}{" "}
-                      {job.unit}
-                    </Link>
+                <div className="flex items-start gap-2">
+                  {d.status === "DELIVERED" && (
+                    <input
+                      type="checkbox"
+                      name="deliveryId"
+                      value={d.id}
+                      form="pod-select"
+                      aria-label="Select for POD download"
+                      className="mt-1"
+                    />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor[d.status]}`}
+                      >
+                        {d.status.replace("_", " ")}
+                      </span>
+                      <Link
+                        href={`/dispatch/jobs/${job.id}/deliveries/${d.id}`}
+                        className="font-medium text-graphite-950 hover:text-orange-600"
+                      >
+                        {d.status === "DELIVERED" && d.deliveredQuantity != null
+                          ? d.deliveredQuantity
+                          : d.quantity}{" "}
+                        {job.unit}
+                      </Link>
+                    </div>
+                    <p className="mt-1 text-graphite-900/60">
+                      {d.vehicleReg ?? "No vehicle"} {d.driver ? `· ${d.driver.name}` : ""}
+                    </p>
                   </div>
-                  <p className="mt-1 text-graphite-900/60">
-                    {d.vehicleReg ?? "No vehicle"} {d.driver ? `· ${d.driver.name}` : ""}
-                  </p>
                 </div>
                 {nextStatus[d.status] && (
                   <form action={updateDeliveryStatus} className="flex items-center gap-2">

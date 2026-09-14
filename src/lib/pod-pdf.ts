@@ -1,0 +1,71 @@
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { format } from "date-fns";
+
+type PodDelivery = {
+  quantity: number;
+  deliveredQuantity: number | null;
+  deliveredAt: Date | null;
+  vehicleReg: string | null;
+  podSignedBy: string | null;
+  podNote: string | null;
+  driver: { name: string } | null;
+  job: {
+    material: string;
+    unit: string;
+    siteAddress: string;
+    docketNumber: string | null;
+    account: { name: string };
+  };
+};
+
+export async function addPodPage(
+  pdf: PDFDocument,
+  delivery: PodDelivery,
+  fonts: { font: PDFFont; bold: PDFFont },
+) {
+  const page: PDFPage = pdf.addPage([420, 560]);
+  const { font, bold } = fonts;
+
+  let y = 520;
+  const line = (text: string, opts: { bold?: boolean; size?: number; gap?: number } = {}) => {
+    page.drawText(text, {
+      x: 40,
+      y,
+      size: opts.size ?? 11,
+      font: opts.bold ? bold : font,
+      color: rgb(0.09, 0.1, 0.11),
+    });
+    y -= opts.gap ?? 20;
+  };
+
+  line("HOGAN GROUP", { bold: true, size: 18, gap: 24 });
+  line("Proof of Delivery", { bold: true, size: 13, gap: 28 });
+
+  line(`Account: ${delivery.job.account.name}`);
+  line(`Material: ${delivery.job.material}`);
+  line(`Quantity planned: ${delivery.quantity} ${delivery.job.unit}`);
+  line(
+    `Quantity delivered: ${
+      delivery.deliveredQuantity != null
+        ? `${delivery.deliveredQuantity} ${delivery.job.unit}`
+        : "—"
+    }`,
+  );
+  line(`Site address: ${delivery.job.siteAddress}`);
+  line(`Docket / PO: ${delivery.job.docketNumber ?? "—"}`);
+  line(
+    `Vehicle: ${delivery.vehicleReg ?? "—"}${delivery.driver ? ` (${delivery.driver.name})` : ""}`,
+  );
+  y -= 10;
+  line(`Delivered: ${delivery.deliveredAt ? format(delivery.deliveredAt, "d MMM yyyy HH:mm") : "—"}`);
+  line(`Signed by: ${delivery.podSignedBy ?? "—"}`);
+  if (delivery.podNote) {
+    line(`Notes: ${delivery.podNote}`, { size: 10, gap: 16 });
+  }
+}
+
+export async function createPodFonts(pdf: PDFDocument) {
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  return { font, bold };
+}

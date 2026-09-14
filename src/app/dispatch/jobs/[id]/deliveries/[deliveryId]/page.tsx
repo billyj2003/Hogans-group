@@ -239,35 +239,39 @@ export default async function DispatchDeliveryDetailPage({
         </div>
       )}
 
-      {delivery.positions.length > 0 && (
-        <div className="mt-10">
-          <h2 className="font-display text-lg font-bold text-graphite-950">Live tracker</h2>
-          <div className="mt-3">
-            <LiveMap
-              positions={delivery.positions.map((p) => ({
-                lat: p.lat,
-                lng: p.lng,
-                recordedAt: p.recordedAt.toISOString(),
-              }))}
-            />
-          </div>
-        </div>
-      )}
+      {(delivery.events.length > 0 || delivery.positions.length > 0) && (
+        <details className="mt-10 [&_summary::-webkit-details-marker]:hidden" open>
+          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-graphite-950/10 pb-2 font-display text-lg font-bold text-graphite-950">
+            Ticket history
+            <span aria-hidden className="text-orange-600">&darr;</span>
+          </summary>
 
-      {delivery.events.length > 0 && (
-        <div className="mt-10">
-          <h2 className="font-display text-lg font-bold text-graphite-950">Ticket history</h2>
-          <ul className="mt-3 space-y-2 border-l border-graphite-950/10 pl-4">
-            {delivery.events.map((e) => (
-              <li key={e.id} className="text-sm">
-                <span className="font-medium text-graphite-950">
-                  {format(e.createdAt, "HH:mm")}: {statusLabel[e.status]}
-                </span>
-                {e.note && <span className="text-graphite-900/50"> &middot; {e.note}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
+          {delivery.events.length > 0 && (
+            <ul className="mt-4 space-y-2 border-l border-graphite-950/10 pl-4">
+              {delivery.events.map((e) => (
+                <li key={e.id} className="text-sm">
+                  <span className="font-medium text-graphite-950">
+                    {format(e.createdAt, "HH:mm")}: {statusLabel[e.status]}
+                  </span>
+                  {e.note && <span className="text-graphite-900/50"> &middot; {e.note}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {delivery.positions.length > 0 && (
+            <div className="mt-4">
+              <LiveMap
+                positions={delivery.positions.map((p) => ({
+                  lat: p.lat,
+                  lng: p.lng,
+                  recordedAt: p.recordedAt.toISOString(),
+                }))}
+                endLabel={delivery.status === "DELIVERED" ? "Completed" : "Last seen"}
+              />
+            </div>
+          )}
+        </details>
       )}
     </div>
   );
