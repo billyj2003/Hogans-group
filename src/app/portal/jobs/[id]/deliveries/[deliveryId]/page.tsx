@@ -40,6 +40,17 @@ export default async function PortalDeliveryDetailPage({
     notFound();
   }
 
+  const onsiteFrom = delivery.dispatchedAt;
+  const onsiteTo = delivery.deliveredAt ?? (delivery.status !== "CANCELLED" ? new Date() : null);
+  const onsiteMinutes =
+    onsiteFrom && onsiteTo ? Math.round((onsiteTo.getTime() - onsiteFrom.getTime()) / 60000) : null;
+  const onsiteLabel =
+    onsiteMinutes != null
+      ? onsiteMinutes < 60
+        ? `${onsiteMinutes}m`
+        : `${Math.floor(onsiteMinutes / 60)}h ${onsiteMinutes % 60}m`
+      : null;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <Link
@@ -61,10 +72,12 @@ export default async function PortalDeliveryDetailPage({
 
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div>
-          <dt className="text-graphite-900/50">Vehicle / driver</dt>
-          <dd className="font-medium text-graphite-950">
-            {delivery.vehicleReg ?? "—"} {delivery.driver ? `(${delivery.driver.name})` : ""}
-          </dd>
+          <dt className="text-graphite-900/50">Driver</dt>
+          <dd className="font-medium text-graphite-950">{delivery.driver?.name ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-graphite-900/50">Vehicle reg.</dt>
+          <dd className="font-medium text-graphite-950">{delivery.vehicleReg ?? "—"}</dd>
         </div>
         <div>
           <dt className="text-graphite-900/50">Docket / PO</dt>
@@ -76,6 +89,12 @@ export default async function PortalDeliveryDetailPage({
             {format(delivery.orderedAt, "d MMM yyyy HH:mm")}
           </dd>
         </div>
+        {onsiteLabel && (
+          <div>
+            <dt className="text-graphite-900/50">Time onsite</dt>
+            <dd className="font-medium text-graphite-950">{onsiteLabel}</dd>
+          </div>
+        )}
       </dl>
 
       {delivery.status === "DELIVERED" && (

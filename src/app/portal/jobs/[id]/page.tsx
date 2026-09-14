@@ -42,7 +42,10 @@ export default async function PortalJobDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="flex items-center justify-between">
+      <Link href="/portal" className="text-sm text-graphite-900/50 hover:text-orange-600">
+        &larr; My Jobs
+      </Link>
+      <div className="mt-2 flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
           {job.status} &middot; {categoryLabel[job.category]}
         </p>
@@ -50,43 +53,51 @@ export default async function PortalJobDetailPage({
       </div>
       <h1 className="mt-2 font-display text-3xl font-bold text-graphite-950">{job.material}</h1>
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <div>
-          <dt className="text-graphite-900/50">Total needed</dt>
-          <dd className="font-medium text-graphite-950">
-            {job.quantity} {job.unit}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Site address</dt>
-          <dd className="font-medium text-graphite-950">{job.siteAddress}</dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Docket / PO</dt>
-          <dd className="font-medium text-graphite-950">{job.docketNumber ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-graphite-900/50">Expected</dt>
-          <dd className="font-medium text-graphite-950">
-            {job.expectedDate ? format(job.expectedDate, "d MMM yyyy HH:mm") : "—"}
-          </dd>
-        </div>
-      </dl>
+      <div className="mt-4 rounded-lg bg-concrete-100 p-6">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div>
+            <dt className="text-graphite-900/50">Docket / PO</dt>
+            <dd className="font-medium text-graphite-950">{job.docketNumber ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-graphite-900/50">Expected</dt>
+            <dd className="font-medium text-graphite-950">
+              {job.expectedDate ? format(job.expectedDate, "d MMM yyyy HH:mm") : "—"}
+            </dd>
+          </div>
+        </dl>
 
-      <div className="mt-6">
-        <div className="flex items-center justify-between text-xs text-graphite-900/50">
-          <span>
-            {deliveredTotal} / {job.quantity} {job.unit} delivered
-          </span>
-          <span>{progressPct}%</span>
-        </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-concrete-200">
-          <div
-            className="h-full bg-orange-500 transition-all"
-            style={{ width: `${progressPct}%` }}
-          />
+        <div className="mt-5">
+          <dt className="text-sm text-graphite-900/50">Qty delivered</dt>
+          <dd className="font-display text-3xl font-bold text-graphite-950">
+            {deliveredTotal} / {job.quantity} {job.unit}
+          </dd>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-concrete-200">
+            <div
+              className="h-full bg-orange-500 transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
         </div>
       </div>
+
+      <details className="mt-3 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none text-sm font-medium text-orange-600">
+          Show more &rarr;
+        </summary>
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div>
+            <dt className="text-graphite-900/50">Site address</dt>
+            <dd className="font-medium text-graphite-950">{job.siteAddress}</dd>
+          </div>
+          <div>
+            <dt className="text-graphite-900/50">Total needed</dt>
+            <dd className="font-medium text-graphite-950">
+              {job.quantity} {job.unit}
+            </dd>
+          </div>
+        </dl>
+      </details>
 
       <div className="mt-10">
         <h2 className="font-display text-lg font-bold text-graphite-950">

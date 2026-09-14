@@ -38,6 +38,17 @@ export default async function DispatchDeliveryDetailPage({
   ]);
   if (!delivery || delivery.jobId !== jobId) notFound();
 
+  const onsiteFrom = delivery.dispatchedAt;
+  const onsiteTo = delivery.deliveredAt ?? (delivery.status !== "CANCELLED" ? new Date() : null);
+  const onsiteMinutes =
+    onsiteFrom && onsiteTo ? Math.round((onsiteTo.getTime() - onsiteFrom.getTime()) / 60000) : null;
+  const onsiteLabel =
+    onsiteMinutes != null
+      ? onsiteMinutes < 60
+        ? `${onsiteMinutes}m`
+        : `${Math.floor(onsiteMinutes / 60)}h ${onsiteMinutes % 60}m`
+      : null;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <Link href={`/dispatch/jobs/${jobId}`} className="text-sm text-graphite-900/50 hover:text-orange-600">
@@ -64,10 +75,12 @@ export default async function DispatchDeliveryDetailPage({
           </dd>
         </div>
         <div>
-          <dt className="text-graphite-900/50">Vehicle / driver</dt>
-          <dd className="font-medium text-graphite-950">
-            {delivery.vehicleReg ?? "—"} {delivery.driver ? `(${delivery.driver.name})` : ""}
-          </dd>
+          <dt className="text-graphite-900/50">Driver</dt>
+          <dd className="font-medium text-graphite-950">{delivery.driver?.name ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-graphite-900/50">Vehicle reg.</dt>
+          <dd className="font-medium text-graphite-950">{delivery.vehicleReg ?? "—"}</dd>
         </div>
         <div>
           <dt className="text-graphite-900/50">Ordered</dt>
@@ -79,6 +92,12 @@ export default async function DispatchDeliveryDetailPage({
           <dt className="text-graphite-900/50">Docket / PO</dt>
           <dd className="font-medium text-graphite-950">{delivery.job.docketNumber ?? "—"}</dd>
         </div>
+        {onsiteLabel && (
+          <div>
+            <dt className="text-graphite-900/50">Time onsite</dt>
+            <dd className="font-medium text-graphite-950">{onsiteLabel}</dd>
+          </div>
+        )}
       </dl>
 
       {delivery.status !== "DELIVERED" && delivery.status !== "CANCELLED" && (
