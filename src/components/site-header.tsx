@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { homeForRole } from "@/lib/require-role";
@@ -24,8 +25,15 @@ export async function SiteHeader() {
       <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <MobileNav links={navLinks} />
-          <Link href={homeHref} className="font-display text-lg font-bold tracking-tight">
-            HOGAN <span className="text-orange-500">GROUP</span>
+          <Link href={homeHref} className="flex items-center">
+            <Image
+              src="/hogan-logo-light.png"
+              alt="Hogan"
+              width={110}
+              height={29}
+              className="h-6 w-auto sm:h-7"
+              priority
+            />
           </Link>
         </div>
 
