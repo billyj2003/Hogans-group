@@ -244,88 +244,116 @@ export default async function DispatchDashboard({
         searchLabel="Search account, docket, or site"
       />
 
-      <div className="mt-8 space-y-3">
+      <div className="mt-8 overflow-x-auto rounded-lg border border-graphite-950/10 bg-white">
         {view === "jobs" ? (
-          <>
-            {jobs.length === 0 && (
-              <p className="text-sm text-graphite-900/50">No jobs match those filters.</p>
-            )}
-            {jobs.map((j) => {
-              const deliveredTotal = j.deliveries
-                .filter((d) => d.status === "DELIVERED")
-                .reduce((sum, d) => sum + (d.deliveredQuantity ?? d.quantity), 0);
-              return (
-                <Link
-                  key={j.id}
-                  href={`/dispatch/jobs/${j.id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-graphite-950/10 bg-white p-4 transition hover:border-orange-500"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-medium ${jobStatusColor[j.status]}`}
-                      >
-                        {j.status}
-                      </span>
-                      <span className="rounded bg-graphite-950/5 px-2 py-0.5 text-xs font-medium text-graphite-900/60">
-                        {categoryLabel[j.category]}
-                      </span>
-                      <span className="font-display font-bold text-graphite-950">
-                        {j.material}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-graphite-900/60">
-                      {j.account.name} &middot; {deliveredTotal}/{j.quantity} {j.unit} &middot;{" "}
-                      {j.siteAddress}
-                      {j.expectedDate ? ` · Expected ${format(j.expectedDate, "d MMM HH:mm")}` : ""}
-                    </p>
-                  </div>
-                  <span className="text-sm text-graphite-900/50">
-                    {j.deliveries.length} wagon{j.deliveries.length === 1 ? "" : "s"}
-                  </span>
-                </Link>
-              );
-            })}
-          </>
+          jobs.length === 0 ? (
+            <p className="p-4 text-sm text-graphite-900/50">No jobs match those filters.</p>
+          ) : (
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-graphite-950/10 text-xs font-medium text-graphite-900/50">
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Material</th>
+                  <th className="px-4 py-3">Account</th>
+                  <th className="px-4 py-3">Site address</th>
+                  <th className="px-4 py-3">Docket / PO</th>
+                  <th className="px-4 py-3">Expected</th>
+                  <th className="px-4 py-3">Qty delivered</th>
+                  <th className="px-4 py-3">Wagons</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map((j) => {
+                  const deliveredTotal = j.deliveries
+                    .filter((d) => d.status === "DELIVERED")
+                    .reduce((sum, d) => sum + (d.deliveredQuantity ?? d.quantity), 0);
+                  return (
+                    <tr key={j.id} className="border-b border-graphite-950/5 last:border-0 hover:bg-concrete-100">
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${jobStatusColor[j.status]}`}
+                        >
+                          {j.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/dispatch/jobs/${j.id}`}
+                          className="font-medium text-graphite-950 hover:text-orange-600 hover:underline"
+                        >
+                          {j.material}
+                        </Link>
+                        <span className="ml-1 text-xs text-graphite-900/50">
+                          {categoryLabel[j.category]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-graphite-900/70">{j.account.name}</td>
+                      <td className="px-4 py-3 text-graphite-900/70">{j.siteAddress}</td>
+                      <td className="px-4 py-3 text-graphite-900/70">{j.docketNumber ?? "—"}</td>
+                      <td className="px-4 py-3 text-graphite-900/70">
+                        {j.expectedDate ? format(j.expectedDate, "d MMM HH:mm") : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-graphite-900/70">
+                        {deliveredTotal}/{j.quantity} {j.unit}
+                      </td>
+                      <td className="px-4 py-3 text-graphite-900/70">{j.deliveries.length}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )
+        ) : deliveries.length === 0 ? (
+          <p className="p-4 text-sm text-graphite-900/50">No wagons match those filters.</p>
         ) : (
-          <>
-            {deliveries.length === 0 && (
-              <p className="text-sm text-graphite-900/50">No wagons match those filters.</p>
-            )}
-            {deliveries.map((d) => (
-              <Link
-                key={d.id}
-                href={`/dispatch/jobs/${d.jobId}/deliveries/${d.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-graphite-950/10 bg-white p-4 transition hover:border-orange-500"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
+          <table className="w-full min-w-[820px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-graphite-950/10 text-xs font-medium text-graphite-900/50">
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Material</th>
+                <th className="px-4 py-3">Account</th>
+                <th className="px-4 py-3">Site address</th>
+                <th className="px-4 py-3">Vehicle reg.</th>
+                <th className="px-4 py-3">Driver</th>
+                <th className="px-4 py-3">Qty</th>
+                <th className="px-4 py-3">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliveries.map((d) => (
+                <tr key={d.id} className="border-b border-graphite-950/5 last:border-0 hover:bg-concrete-100">
+                  <td className="px-4 py-3">
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${deliveryStatusColor[d.status]}`}
                     >
                       {d.status.replace("_", " ")}
                     </span>
-                    <span className="rounded bg-graphite-950/5 px-2 py-0.5 text-xs font-medium text-graphite-900/60">
-                      {categoryLabel[d.job.category]}
-                    </span>
-                    <span className="font-display font-bold text-graphite-950">
-                      {d.status === "DELIVERED" && d.deliveredQuantity != null
-                        ? d.deliveredQuantity
-                        : d.quantity}{" "}
-                      {d.job.unit} &middot; {d.job.material}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-graphite-900/60">
-                    {d.job.account.name} &middot; {d.job.siteAddress} &middot;{" "}
-                    {d.vehicleReg ?? "No vehicle"} {d.driver ? `(${d.driver.name})` : ""}
-                  </p>
-                </div>
-                <span className="text-sm text-graphite-900/50">
-                  {format(d.createdAt, "d MMM HH:mm")}
-                </span>
-              </Link>
-            ))}
-          </>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/dispatch/jobs/${d.jobId}/deliveries/${d.id}`}
+                      className="font-medium text-graphite-950 hover:text-orange-600 hover:underline"
+                    >
+                      {d.job.material}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-graphite-900/70">{d.job.account.name}</td>
+                  <td className="px-4 py-3 text-graphite-900/70">{d.job.siteAddress}</td>
+                  <td className="px-4 py-3 text-graphite-900/70">{d.vehicleReg ?? "—"}</td>
+                  <td className="px-4 py-3 text-graphite-900/70">{d.driver?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-graphite-900/70">
+                    {d.status === "DELIVERED" && d.deliveredQuantity != null
+                      ? d.deliveredQuantity
+                      : d.quantity}{" "}
+                    {d.job.unit}
+                  </td>
+                  <td className="px-4 py-3 text-graphite-900/70">
+                    {format(d.createdAt, "d MMM HH:mm")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
