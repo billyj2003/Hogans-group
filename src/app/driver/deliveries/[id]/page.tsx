@@ -71,6 +71,12 @@ export default async function DriverDeliveryDetailPage({
             <dd className="font-medium text-graphite-950">{delivery.vehicleReg}</dd>
           </div>
         )}
+        {delivery.haulierName && (
+          <div>
+            <dt className="text-graphite-900/50">Haulier</dt>
+            <dd className="font-medium text-graphite-950">{delivery.haulierName}</dd>
+          </div>
+        )}
       </dl>
 
       <div className="mt-8 space-y-3">
@@ -120,6 +126,47 @@ export default async function DriverDeliveryDetailPage({
                 className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
               />
             </div>
+            <details className="[&_summary::-webkit-details-marker]:hidden">
+              <summary className="cursor-pointer list-none text-xs font-medium text-graphite-900/60">
+                Weighbridge ticket (optional)
+              </summary>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-graphite-900/50">Gross weight</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="grossWeight"
+                    className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-graphite-900/50">Tare weight</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="tareWeight"
+                    className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-graphite-900/50">Temperature (°C)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    name="temperature"
+                    className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-graphite-900/50">Load #</label>
+                  <input
+                    name="loadNumber"
+                    className="mt-1 w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </details>
             <div>
               <label className="text-sm font-medium text-graphite-900">
                 Signed for by (name)
@@ -158,6 +205,12 @@ export default async function DriverDeliveryDetailPage({
             Delivered {delivery.deliveredAt && format(delivery.deliveredAt, "d MMM HH:mm")}
             {delivery.deliveredQuantity != null &&
               ` · ${delivery.deliveredQuantity} ${delivery.job.unit} delivered`}
+            {(delivery.grossWeight != null || delivery.tareWeight != null) && (
+              <span className="mt-1 block text-graphite-900/60">
+                Gross {delivery.grossWeight ?? "—"} &middot; Tare {delivery.tareWeight ?? "—"}
+                {delivery.temperature != null ? ` · ${delivery.temperature}°C` : ""}
+              </span>
+            )}
             {delivery.podSignatureData && (
               // eslint-disable-next-line @next/next/no-img-element
               <img

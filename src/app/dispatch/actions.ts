@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { maybeCompleteJob } from "@/lib/complete-job";
+import { parseWeighbridgeFields } from "@/lib/weighbridge";
 
 type Status = "ORDERED" | "DISPATCHED" | "ON_SITE" | "UNLOADING" | "DELIVERED" | "CANCELLED";
 const VALID_STATUSES: Status[] = [
@@ -231,6 +232,7 @@ export async function addLoad(formData: FormData) {
   const jobId = String(formData.get("jobId"));
   const quantityRaw = String(formData.get("quantity") ?? "").trim();
   const vehicleReg = String(formData.get("vehicleReg") ?? "").trim() || null;
+  const haulierName = String(formData.get("haulierName") ?? "").trim() || null;
   const driverId = String(formData.get("driverId") ?? "").trim() || null;
 
   const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -247,6 +249,7 @@ export async function addLoad(formData: FormData) {
       jobId,
       quantity,
       vehicleReg,
+      haulierName,
       driverId,
       events: { create: { status: "ORDERED" } },
     },
@@ -263,10 +266,12 @@ export async function assignDriver(formData: FormData) {
   const jobId = String(formData.get("jobId"));
   const driverId = String(formData.get("driverId") ?? "").trim() || null;
   const vehicleReg = String(formData.get("vehicleReg") ?? "").trim() || null;
+  const haulierName = String(formData.get("haulierName") ?? "").trim() || null;
+  const despatchedBy = String(formData.get("despatchedBy") ?? "").trim() || null;
 
   await prisma.delivery.update({
     where: { id: deliveryId },
-    data: { driverId, vehicleReg },
+    data: { driverId, vehicleReg, haulierName, despatchedBy },
   });
 
   revalidatePath("/dispatch");
@@ -323,6 +328,8 @@ export async function recordProofOfDelivery(formData: FormData) {
   const podSignedBy = String(formData.get("podSignedBy") ?? "").trim();
   const podNote = String(formData.get("podNote") ?? "").trim() || null;
   const deliveredQuantityRaw = String(formData.get("deliveredQuantity") ?? "").trim();
+  const { grossWeight, tareWeight, temperature, loadNumber, netWeight } =
+    parseWeighbridgeFields(formData);
 
   if (!podSignedBy) throw new Error("Signed-by name is required.");
   if (deliveredQuantityRaw) {
@@ -344,7 +351,12 @@ export async function recordProofOfDelivery(formData: FormData) {
       podNote,
       status: "DELIVERED",
       deliveredAt: now,
-      deliveredQuantity: deliveredQuantityRaw ? Number(deliveredQuantityRaw) : undefined,
+      deliveredQuantity:
+        netWeight ?? (deliveredQuantityRaw ? Number(deliveredQuantityRaw) : undefined),
+      grossWeight,
+      tareWeight,
+      temperature,
+      loadNumber,
       events: {
         create: {
           status: "DELIVERED",

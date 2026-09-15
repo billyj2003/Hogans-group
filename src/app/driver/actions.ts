@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { maybeCompleteJob } from "@/lib/complete-job";
+import { parseWeighbridgeFields } from "@/lib/weighbridge";
 
 function formatDuration(ms: number) {
   const mins = Math.round(ms / 60000);
@@ -86,14 +87,20 @@ export async function driverCompleteDelivery(formData: FormData) {
   const podSignedBy = String(formData.get("podSignedBy") ?? "").trim();
   const podNote = String(formData.get("podNote") ?? "").trim() || null;
   const podSignatureData = String(formData.get("podSignatureData") ?? "").trim() || null;
+  const { grossWeight, tareWeight, temperature, loadNumber, netWeight } =
+    parseWeighbridgeFields(formData);
 
-  if (!deliveredQuantityRaw || !podSignedBy) {
-    throw new Error("Delivered quantity and signed-by name are required.");
+  if (!podSignedBy) {
+    throw new Error("Signed-by name is required.");
   }
-  const parsedQuantity = Number(deliveredQuantityRaw);
-  if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+  if (!deliveredQuantityRaw && netWeight == null) {
+    throw new Error("Delivered quantity (or gross and tare weight) is required.");
+  }
+  const manualQuantity = deliveredQuantityRaw ? Number(deliveredQuantityRaw) : null;
+  if (manualQuantity != null && (!Number.isFinite(manualQuantity) || manualQuantity <= 0)) {
     throw new Error("Delivered quantity must be a positive number.");
   }
+  const parsedQuantity = netWeight ?? manualQuantity!;
 
   const now = new Date();
   const from = delivery.unloadingAt ?? delivery.onSiteAt ?? delivery.dispatchedAt;
@@ -105,6 +112,10 @@ export async function driverCompleteDelivery(formData: FormData) {
       status: "DELIVERED",
       deliveredAt: now,
       deliveredQuantity: parsedQuantity,
+      grossWeight,
+      tareWeight,
+      temperature,
+      loadNumber,
       podSignedBy,
       podNote,
       podSignatureData,

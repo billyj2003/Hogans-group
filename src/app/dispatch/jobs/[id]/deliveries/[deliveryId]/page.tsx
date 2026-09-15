@@ -86,6 +86,10 @@ export default async function DispatchDeliveryDetailPage({
           <dd className="font-medium text-graphite-950">{delivery.vehicleReg ?? "—"}</dd>
         </div>
         <div>
+          <dt className="text-graphite-900/50">Haulier</dt>
+          <dd className="font-medium text-graphite-950">{delivery.haulierName ?? "—"}</dd>
+        </div>
+        <div>
           <dt className="text-graphite-900/50">Ordered</dt>
           <dd className="font-medium text-graphite-950">
             {format(delivery.orderedAt, "d MMM yyyy HH:mm")}
@@ -95,6 +99,18 @@ export default async function DispatchDeliveryDetailPage({
           <dt className="text-graphite-900/50">Docket / PO</dt>
           <dd className="font-medium text-graphite-950">{delivery.job.docketNumber ?? "—"}</dd>
         </div>
+        {delivery.despatchedBy && (
+          <div>
+            <dt className="text-graphite-900/50">Despatched by</dt>
+            <dd className="font-medium text-graphite-950">{delivery.despatchedBy}</dd>
+          </div>
+        )}
+        {delivery.loadNumber && (
+          <div>
+            <dt className="text-graphite-900/50">Load number</dt>
+            <dd className="font-medium text-graphite-950">{delivery.loadNumber}</dd>
+          </div>
+        )}
         {onsiteLabel && (
           <div>
             <dt className="text-graphite-900/50">Time onsite</dt>
@@ -127,6 +143,18 @@ export default async function DispatchDeliveryDetailPage({
               defaultValue={delivery.vehicleReg ?? ""}
               list="vehicle-regs"
               autoComplete="off"
+              className="rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            />
+            <input
+              name="haulierName"
+              placeholder="Haulier"
+              defaultValue={delivery.haulierName ?? ""}
+              className="rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+            />
+            <input
+              name="despatchedBy"
+              placeholder="Despatched by (name)"
+              defaultValue={delivery.despatchedBy ?? ""}
               className="rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
             />
             <button
@@ -198,6 +226,39 @@ export default async function DispatchDeliveryDetailPage({
               defaultValue={delivery.quantity}
               className="w-full rounded border border-graphite-950/15 px-3 py-2 text-sm"
             />
+            <details className="[&_summary::-webkit-details-marker]:hidden">
+              <summary className="cursor-pointer list-none text-xs font-medium text-graphite-900/60 hover:text-orange-600">
+                Weighbridge details (optional) &mdash; overrides quantity above
+              </summary>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <input
+                  type="number"
+                  step="0.01"
+                  name="grossWeight"
+                  placeholder="Gross wt."
+                  className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  name="tareWeight"
+                  placeholder="Tare wt."
+                  className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  name="temperature"
+                  placeholder="Temp. (°C)"
+                  className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                />
+                <input
+                  name="loadNumber"
+                  placeholder="Load #"
+                  className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+                />
+              </div>
+            </details>
             <input
               name="podSignedBy"
               placeholder="Signed by (name)"
@@ -232,6 +293,12 @@ export default async function DispatchDeliveryDetailPage({
               : ""}
             {delivery.podSignedBy ? ` · Signed by ${delivery.podSignedBy}` : ""}
           </p>
+          {(delivery.grossWeight != null || delivery.tareWeight != null) && (
+            <p className="mt-1 text-sm text-graphite-900/60">
+              Gross {delivery.grossWeight ?? "—"} &middot; Tare {delivery.tareWeight ?? "—"}
+              {delivery.temperature != null ? ` · ${delivery.temperature}°C` : ""}
+            </p>
+          )}
           {delivery.podNote && (
             <p className="mt-2 text-sm text-graphite-900/60">{delivery.podNote}</p>
           )}

@@ -272,6 +272,14 @@ export default async function DispatchJobDetailPage({
               />
             </div>
             <div>
+              <label className="text-xs text-graphite-900/50">Haulier</label>
+              <input
+                name="haulierName"
+                placeholder="e.g. own fleet, or subcontractor"
+                className="mt-1 block rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
               <label className="text-xs text-graphite-900/50">Driver</label>
               <select
                 name="driverId"

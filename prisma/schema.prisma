@@ -96,13 +96,19 @@ model Delivery {
   quantity          Float
   deliveredQuantity Float?
   vehicleReg        String?
+  haulierName       String?
   driverId          String?
   driver            User?          @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
   orderedAt         DateTime       @default(now())
   dispatchedAt      DateTime?
+  despatchedBy      String?
   onSiteAt          DateTime?
   unloadingAt       DateTime?
   deliveredAt       DateTime?
+  loadNumber        String?
+  grossWeight       Float?
+  tareWeight        Float?
+  temperature       Float?
   podSignedBy       String?
   podSignatureData  String?
   podPhotoUrl       String?

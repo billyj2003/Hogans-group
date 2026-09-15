@@ -6,6 +6,12 @@ type PodDelivery = {
   deliveredQuantity: number | null;
   deliveredAt: Date | null;
   vehicleReg: string | null;
+  haulierName: string | null;
+  despatchedBy: string | null;
+  loadNumber: string | null;
+  grossWeight: number | null;
+  tareWeight: number | null;
+  temperature: number | null;
   podSignedBy: string | null;
   podSignatureData: string | null;
   podNote: string | null;
@@ -24,10 +30,10 @@ export async function addPodPage(
   delivery: PodDelivery,
   fonts: { font: PDFFont; bold: PDFFont },
 ) {
-  const page: PDFPage = pdf.addPage([420, 560]);
+  const page: PDFPage = pdf.addPage([420, 680]);
   const { font, bold } = fonts;
 
-  let y = 520;
+  let y = 640;
   const line = (text: string, opts: { bold?: boolean; size?: number; gap?: number } = {}) => {
     page.drawText(text, {
       x: 40,
@@ -57,6 +63,21 @@ export async function addPodPage(
   line(
     `Vehicle: ${delivery.vehicleReg ?? "—"}${delivery.driver ? ` (${delivery.driver.name})` : ""}`,
   );
+  if (delivery.haulierName) {
+    line(`Haulier: ${delivery.haulierName}`);
+  }
+  if (delivery.loadNumber) {
+    line(`Load #: ${delivery.loadNumber}`);
+  }
+  if (delivery.grossWeight != null || delivery.tareWeight != null) {
+    line(
+      `Gross: ${delivery.grossWeight ?? "—"} · Tare: ${delivery.tareWeight ?? "—"}` +
+        (delivery.temperature != null ? ` · Temp: ${delivery.temperature}°C` : ""),
+    );
+  }
+  if (delivery.despatchedBy) {
+    line(`Despatched by: ${delivery.despatchedBy}`);
+  }
   y -= 10;
   line(`Delivered: ${delivery.deliveredAt ? format(delivery.deliveredAt, "d MMM yyyy HH:mm") : "—"}`);
   line(`Signed by: ${delivery.podSignedBy ?? "—"}`);
