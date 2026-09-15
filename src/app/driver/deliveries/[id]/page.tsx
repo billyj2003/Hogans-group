@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { requireDriver } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { GeoReporter } from "@/components/geo-reporter";
+import { SignaturePad } from "@/components/signature-pad";
 import {
   driverCompleteDelivery,
   driverMarkDispatched,
@@ -130,6 +131,12 @@ export default async function DriverDeliveryDetailPage({
               />
             </div>
             <div>
+              <label className="text-sm font-medium text-graphite-900">Signature</label>
+              <div className="mt-1">
+                <SignaturePad name="podSignatureData" />
+              </div>
+            </div>
+            <div>
               <label className="text-sm font-medium text-graphite-900">Notes (optional)</label>
               <textarea
                 name="podNote"
@@ -151,6 +158,14 @@ export default async function DriverDeliveryDetailPage({
             Delivered {delivery.deliveredAt && format(delivery.deliveredAt, "d MMM HH:mm")}
             {delivery.deliveredQuantity != null &&
               ` · ${delivery.deliveredQuantity} ${delivery.job.unit} delivered`}
+            {delivery.podSignatureData && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={delivery.podSignatureData}
+                alt="Signature"
+                className="mt-2 h-16 w-auto rounded border border-graphite-950/10 bg-white"
+              />
+            )}
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ type PodDelivery = {
   deliveredAt: Date | null;
   vehicleReg: string | null;
   podSignedBy: string | null;
+  podSignatureData: string | null;
   podNote: string | null;
   driver: { name: string } | null;
   job: {
@@ -61,6 +62,20 @@ export async function addPodPage(
   line(`Signed by: ${delivery.podSignedBy ?? "—"}`);
   if (delivery.podNote) {
     line(`Notes: ${delivery.podNote}`, { size: 10, gap: 16 });
+  }
+
+  if (delivery.podSignatureData?.startsWith("data:image/png;base64,")) {
+    try {
+      const base64 = delivery.podSignatureData.slice("data:image/png;base64,".length);
+      const png = await pdf.embedPng(Buffer.from(base64, "base64"));
+      const sigHeight = 60;
+      const sigWidth = (png.width / png.height) * sigHeight;
+      y -= 10;
+      page.drawText("Signature:", { x: 40, y, size: 10, font, color: rgb(0.09, 0.1, 0.11) });
+      page.drawImage(png, { x: 40, y: y - sigHeight - 4, width: sigWidth, height: sigHeight });
+    } catch {
+      // Skip a malformed signature rather than failing the whole PDF.
+    }
   }
 }
 

@@ -85,6 +85,7 @@ export async function driverCompleteDelivery(formData: FormData) {
   const deliveredQuantityRaw = String(formData.get("deliveredQuantity") ?? "").trim();
   const podSignedBy = String(formData.get("podSignedBy") ?? "").trim();
   const podNote = String(formData.get("podNote") ?? "").trim() || null;
+  const podSignatureData = String(formData.get("podSignatureData") ?? "").trim() || null;
 
   if (!deliveredQuantityRaw || !podSignedBy) {
     throw new Error("Delivered quantity and signed-by name are required.");
@@ -106,6 +107,7 @@ export async function driverCompleteDelivery(formData: FormData) {
       deliveredQuantity: parsedQuantity,
       podSignedBy,
       podNote,
+      podSignatureData,
       events: {
         create: {
           status: "DELIVERED",

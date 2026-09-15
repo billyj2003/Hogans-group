@@ -235,6 +235,14 @@ export default async function DispatchDeliveryDetailPage({
           {delivery.podNote && (
             <p className="mt-2 text-sm text-graphite-900/60">{delivery.podNote}</p>
           )}
+          {delivery.podSignatureData && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={delivery.podSignatureData}
+              alt="Signature"
+              className="mt-3 h-20 w-auto rounded border border-graphite-950/10 bg-white"
+            />
+          )}
           <Link
             href={`/api/deliveries/${delivery.id}/pod`}
             className="mt-3 inline-block rounded bg-graphite-950 px-4 py-2 text-sm font-medium text-concrete-100 hover:bg-graphite-800"
