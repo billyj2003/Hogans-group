@@ -165,6 +165,12 @@ export async function updateJob(formData: FormData) {
     );
   }
 
+  // If a COMPLETE job's target is raised above what's already been
+  // delivered (e.g. fixing a data-entry mistake, or the customer wants
+  // more), reopen it automatically so staff can send more wagons without
+  // a separate step.
+  const reopens = job.status === "COMPLETE" && quantity > deliveredTotal;
+
   await prisma.job.update({
     where: { id: jobId },
     data: {
@@ -176,7 +182,21 @@ export async function updateJob(formData: FormData) {
       expectedDate: expectedDateRaw ? new Date(expectedDateRaw) : null,
       docketNumber,
       notes,
+      ...(reopens ? { status: "OPEN", completedAt: null } : {}),
     },
+  });
+
+  revalidatePath("/dispatch");
+  revalidatePath(`/dispatch/jobs/${jobId}`);
+}
+
+export async function reopenJob(formData: FormData) {
+  await assertStaff();
+
+  const jobId = String(formData.get("jobId"));
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { status: "OPEN", completedAt: null },
   });
 
   revalidatePath("/dispatch");

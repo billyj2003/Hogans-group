@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { requireStaff } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { addLoad, cancelJob, repeatJob, updateDeliveryStatus, updateJob } from "../../actions";
+import { addLoad, cancelJob, repeatJob, reopenJob, updateDeliveryStatus, updateJob } from "../../actions";
 
 const categoryLabel: Record<string, string> = {
   AGGREGATES: "Aggregates",
@@ -224,6 +224,23 @@ export default async function DispatchJobDetailPage({
           </div>
         </dl>
       </details>
+
+      {job.status !== "OPEN" && (
+        <div className="mt-8 rounded-lg border border-graphite-950/10 bg-white p-4 text-center">
+          <p className="text-sm text-graphite-900/60">
+            This job is {job.status.toLowerCase()}, so it&apos;s not taking new wagons.
+          </p>
+          <form action={reopenJob} className="mt-3">
+            <input type="hidden" name="jobId" value={job.id} />
+            <button
+              type="submit"
+              className="rounded border border-graphite-950/20 px-4 py-2 text-sm font-medium text-graphite-900 hover:border-orange-500 hover:text-orange-600"
+            >
+              Reopen job
+            </button>
+          </form>
+        </div>
+      )}
 
       {job.status === "OPEN" && (
         <div className="mt-8 rounded-lg border border-graphite-950/10 bg-white p-4">
