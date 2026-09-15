@@ -5,6 +5,8 @@ import { requireStaff } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { addLoad, cancelJob, repeatJob, reopenJob, updateDeliveryStatus, updateJob } from "../../actions";
+import { getKnownVehicleRegs } from "@/lib/vehicle-regs";
+import { VehicleRegList } from "@/components/vehicle-reg-list";
 
 const categoryLabel: Record<string, string> = {
   AGGREGATES: "Aggregates",
@@ -46,7 +48,7 @@ export default async function DispatchJobDetailPage({
   await requireStaff();
   const { id } = await params;
 
-  const [job, drivers] = await Promise.all([
+  const [job, drivers, knownVehicleRegs] = await Promise.all([
     prisma.job.findUnique({
       where: { id },
       include: {
@@ -55,6 +57,7 @@ export default async function DispatchJobDetailPage({
       },
     }),
     prisma.user.findMany({ where: { role: "DRIVER" }, orderBy: { name: "asc" } }),
+    getKnownVehicleRegs(),
   ]);
   if (!job) notFound();
 
@@ -263,6 +266,8 @@ export default async function DispatchJobDetailPage({
               <label className="text-xs text-graphite-900/50">Vehicle reg</label>
               <input
                 name="vehicleReg"
+                list="vehicle-regs"
+                autoComplete="off"
                 className="mt-1 block rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
               />
             </div>
@@ -380,6 +385,7 @@ export default async function DispatchJobDetailPage({
           </div>
         )}
       </div>
+      <VehicleRegList regs={knownVehicleRegs} />
     </div>
   );
 }

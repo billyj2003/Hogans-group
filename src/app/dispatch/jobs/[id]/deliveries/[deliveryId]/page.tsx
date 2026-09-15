@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { LiveMap } from "@/components/live-map";
 import { assignDriver, recordProofOfDelivery, updateDeliveryStatus } from "../../../../actions";
+import { getKnownVehicleRegs } from "@/lib/vehicle-regs";
+import { VehicleRegList } from "@/components/vehicle-reg-list";
 
 const statusLabel: Record<string, string> = {
   ORDERED: "Ordered",
@@ -24,7 +26,7 @@ export default async function DispatchDeliveryDetailPage({
   await requireStaff();
   const { id: jobId, deliveryId } = await params;
 
-  const [delivery, drivers] = await Promise.all([
+  const [delivery, drivers, knownVehicleRegs] = await Promise.all([
     prisma.delivery.findUnique({
       where: { id: deliveryId },
       include: {
@@ -35,6 +37,7 @@ export default async function DispatchDeliveryDetailPage({
       },
     }),
     prisma.user.findMany({ where: { role: "DRIVER" }, orderBy: { name: "asc" } }),
+    getKnownVehicleRegs(),
   ]);
   if (!delivery || delivery.jobId !== jobId) notFound();
 
@@ -122,6 +125,8 @@ export default async function DispatchDeliveryDetailPage({
               name="vehicleReg"
               placeholder="Vehicle reg"
               defaultValue={delivery.vehicleReg ?? ""}
+              list="vehicle-regs"
+              autoComplete="off"
               className="rounded border border-graphite-950/15 px-3 py-1.5 text-sm"
             />
             <button
@@ -269,6 +274,7 @@ export default async function DispatchDeliveryDetailPage({
           />
         </div>
       </details>
+      <VehicleRegList regs={knownVehicleRegs} />
     </div>
   );
 }
