@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { requireStaff } from "@/lib/require-role";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { addLoad, cancelJob, repeatJob, updateDeliveryStatus } from "../../actions";
+import { addLoad, cancelJob, repeatJob, updateDeliveryStatus, updateJob } from "../../actions";
 
 const categoryLabel: Record<string, string> = {
   AGGREGATES: "Aggregates",
@@ -90,6 +90,75 @@ export default async function DispatchJobDetailPage({
           Repeat job
         </button>
       </form>
+
+      <details className="mt-3 rounded-lg border border-graphite-950/10 bg-white p-4 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none text-sm font-bold text-graphite-900 hover:text-orange-600">
+          Edit job details
+        </summary>
+        <form action={updateJob} className="mt-4 grid gap-3 sm:grid-cols-3">
+          <input type="hidden" name="jobId" value={job.id} />
+          <select
+            name="category"
+            defaultValue={job.category}
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          >
+            <option value="AGGREGATES">Aggregates</option>
+            <option value="ASPHALT">Asphalt</option>
+            <option value="CONCRETE">Concrete</option>
+            <option value="OTHER">Other</option>
+          </select>
+          <input
+            name="material"
+            placeholder="Material"
+            defaultValue={job.material}
+            required
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          />
+          <input
+            type="number"
+            step="0.01"
+            name="quantity"
+            placeholder="Total quantity needed"
+            defaultValue={job.quantity}
+            required
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          />
+          <input
+            name="unit"
+            placeholder="Unit (tonnes, m3...)"
+            defaultValue={job.unit}
+            required
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          />
+          <input
+            type="datetime-local"
+            name="expectedDate"
+            defaultValue={
+              job.expectedDate ? format(job.expectedDate, "yyyy-MM-dd'T'HH:mm") : ""
+            }
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          />
+          <input
+            name="siteAddress"
+            placeholder="Site address"
+            defaultValue={job.siteAddress}
+            required
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-2"
+          />
+          <input
+            name="docketNumber"
+            placeholder="Docket / PO number (optional)"
+            defaultValue={job.docketNumber ?? ""}
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="rounded bg-orange-500 px-6 py-2.5 text-sm font-medium text-graphite-950 hover:bg-orange-600 sm:col-span-3"
+          >
+            Save changes
+          </button>
+        </form>
+      </details>
 
       <div className="mt-4 rounded-lg bg-concrete-100 p-6">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">

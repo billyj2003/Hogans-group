@@ -110,6 +110,60 @@ export async function createJob(formData: FormData) {
   redirect(`/dispatch/jobs/${job.id}`);
 }
 
+export async function updateJob(formData: FormData) {
+  await assertStaff();
+
+  const jobId = String(formData.get("jobId"));
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: { deliveries: true },
+  });
+  if (!job) throw new Error("Job not found.");
+
+  const categoryRaw = String(formData.get("category") ?? "OTHER");
+  const category = VALID_CATEGORIES.includes(categoryRaw as Category)
+    ? (categoryRaw as Category)
+    : "OTHER";
+  const material = String(formData.get("material") ?? "").trim();
+  const quantity = Number(formData.get("quantity"));
+  const unit = String(formData.get("unit") ?? "").trim();
+  const siteAddress = String(formData.get("siteAddress") ?? "").trim();
+  const expectedDateRaw = String(formData.get("expectedDate") ?? "").trim();
+  const docketNumber = String(formData.get("docketNumber") ?? "").trim() || null;
+
+  if (!material || !unit || !siteAddress) {
+    throw new Error("Material, unit, and site address are required.");
+  }
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
+  }
+
+  const deliveredTotal = job.deliveries
+    .filter((d) => d.status === "DELIVERED")
+    .reduce((sum, d) => sum + (d.deliveredQuantity ?? d.quantity), 0);
+  if (quantity < deliveredTotal) {
+    throw new Error(
+      `Quantity can't be less than the ${deliveredTotal} ${job.unit} already delivered.`,
+    );
+  }
+
+  await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      category,
+      material,
+      quantity,
+      unit,
+      siteAddress,
+      expectedDate: expectedDateRaw ? new Date(expectedDateRaw) : null,
+      docketNumber,
+    },
+  });
+
+  revalidatePath("/dispatch");
+  revalidatePath(`/dispatch/jobs/${jobId}`);
+}
+
 export async function repeatJob(formData: FormData) {
   await assertStaff();
 
