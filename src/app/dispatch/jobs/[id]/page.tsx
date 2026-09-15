@@ -74,7 +74,7 @@ export default async function DispatchJobDetailPage({
       </Link>
       <div className="mt-2 flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
-          {job.status} &middot; {categoryLabel[job.category]}
+          Order #{job.orderNumber} &middot; {job.status} &middot; {categoryLabel[job.category]}
         </p>
         <AutoRefresh intervalSeconds={20} />
       </div>
@@ -151,6 +151,13 @@ export default async function DispatchJobDetailPage({
             defaultValue={job.docketNumber ?? ""}
             className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
           />
+          <textarea
+            name="notes"
+            placeholder="Notes for driver (e.g. tip at back gate, call on arrival)"
+            defaultValue={job.notes ?? ""}
+            rows={2}
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-3"
+          />
           <button
             type="submit"
             className="rounded bg-orange-500 px-6 py-2.5 text-sm font-medium text-graphite-950 hover:bg-orange-600 sm:col-span-3"
@@ -192,6 +199,13 @@ export default async function DispatchJobDetailPage({
           )}
         </div>
       </div>
+
+      {job.notes && (
+        <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm">
+          <p className="font-medium text-graphite-950">Notes for driver</p>
+          <p className="mt-1 whitespace-pre-wrap text-graphite-900/80">{job.notes}</p>
+        </div>
+      )}
 
       <details className="mt-3 [&_summary::-webkit-details-marker]:hidden">
         <summary className="cursor-pointer list-none text-sm font-medium text-orange-600">

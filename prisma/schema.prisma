@@ -47,6 +47,7 @@ enum MaterialCategory {
 model Account {
   id        String   @id @default(cuid())
   name      String
+  phone     String?
   siteNotes String?
   createdAt DateTime @default(now())
 
@@ -69,6 +70,7 @@ model User {
 
 model Job {
   id            String           @id @default(cuid())
+  orderNumber   Int              @unique @default(autoincrement())
   accountId     String
   account       Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
   status        JobStatus        @default(OPEN)
@@ -78,6 +80,7 @@ model Job {
   unit          String
   siteAddress   String
   docketNumber  String?
+  notes         String?
   expectedDate  DateTime?
   createdAt     DateTime         @default(now())
   completedAt   DateTime?

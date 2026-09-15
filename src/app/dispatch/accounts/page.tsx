@@ -24,6 +24,12 @@ export default async function AccountsPage() {
             required
             className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-2"
           />
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Callback phone number (optional)"
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-2"
+          />
           <textarea
             name="siteNotes"
             placeholder="Site notes (optional)"

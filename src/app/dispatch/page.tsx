@@ -87,11 +87,13 @@ export default async function DispatchDashboard({
 
   const jobWhere: JobWhereInput = {};
   if (q) {
+    const qNumber = Number(q);
     jobWhere.OR = [
       { material: { contains: q } },
       { docketNumber: { contains: q } },
       { siteAddress: { contains: q } },
       { account: { name: { contains: q } } },
+      ...(Number.isInteger(qNumber) ? [{ orderNumber: qNumber }] : []),
     ];
   }
   if (category) jobWhere.category = category as MaterialCategory;
@@ -200,6 +202,12 @@ export default async function DispatchDashboard({
             placeholder="Docket / PO number (optional)"
             className="rounded border border-graphite-950/15 px-3 py-2 text-sm"
           />
+          <textarea
+            name="notes"
+            placeholder="Notes for driver (e.g. tip at back gate, call on arrival)"
+            rows={2}
+            className="rounded border border-graphite-950/15 px-3 py-2 text-sm sm:col-span-3"
+          />
           <button
             type="submit"
             className="rounded bg-orange-500 px-6 py-2.5 text-sm font-medium text-graphite-950 hover:bg-orange-600 sm:col-span-3"
@@ -241,7 +249,7 @@ export default async function DispatchDashboard({
         to={to}
         statusOptions={view === "jobs" ? jobStatusOptions : deliveryStatusOptions}
         categoryOptions={categoryOptions}
-        searchLabel="Search account, docket, or site"
+        searchLabel="Search order #, account, docket, or site"
       />
 
       <div className="mt-8 overflow-x-auto rounded-lg border border-graphite-950/10 bg-white">
@@ -252,6 +260,7 @@ export default async function DispatchDashboard({
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead>
                 <tr className="border-b border-graphite-950/10 text-xs font-medium text-graphite-900/50">
+                  <th className="px-4 py-3">Order #</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Material</th>
                   <th className="px-4 py-3">Account</th>
@@ -269,6 +278,11 @@ export default async function DispatchDashboard({
                     .reduce((sum, d) => sum + (d.deliveredQuantity ?? d.quantity), 0);
                   return (
                     <tr key={j.id} className="border-b border-graphite-950/5 last:border-0 hover:bg-concrete-100">
+                      <td className="px-4 py-3 font-medium text-graphite-950">
+                        <Link href={`/dispatch/jobs/${j.id}`} className="hover:text-orange-600 hover:underline">
+                          #{j.orderNumber}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded px-2 py-0.5 text-xs font-medium ${jobStatusColor[j.status]}`}

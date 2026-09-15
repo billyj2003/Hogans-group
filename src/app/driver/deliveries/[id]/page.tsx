@@ -36,6 +36,13 @@ export default async function DriverDeliveryDetailPage({
       </h1>
       <p className="mt-1 text-graphite-900/60">{delivery.job.account.name}</p>
 
+      {delivery.job.notes && (
+        <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm">
+          <p className="font-bold text-graphite-950">Notes for this delivery</p>
+          <p className="mt-1 whitespace-pre-wrap text-graphite-900/80">{delivery.job.notes}</p>
+        </div>
+      )}
+
       <div className="mt-4">
         <GeoReporter deliveryId={delivery.id} active={isTracking} />
       </div>

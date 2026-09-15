@@ -38,11 +38,14 @@ export default async function DriverJobsPage() {
               href={`/driver/deliveries/${d.id}`}
               className="block rounded-lg border border-graphite-950/10 bg-white p-4 transition hover:border-orange-500"
             >
-              <span
-                className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor[d.status]}`}
-              >
-                {d.status.replace("_", " ")}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor[d.status]}`}
+                >
+                  {d.status.replace("_", " ")}
+                </span>
+                <span className="text-xs text-graphite-900/50">Order #{d.job.orderNumber}</span>
+              </div>
               <p className="mt-2 font-display text-lg font-bold text-graphite-950">
                 {d.job.material}
               </p>

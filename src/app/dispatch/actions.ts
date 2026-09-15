@@ -40,10 +40,25 @@ export async function createAccount(formData: FormData) {
   await assertStaff();
 
   const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim() || null;
   const siteNotes = String(formData.get("siteNotes") ?? "").trim() || null;
   if (!name) throw new Error("Account name is required.");
 
-  await prisma.account.create({ data: { name, siteNotes } });
+  await prisma.account.create({ data: { name, phone, siteNotes } });
+  revalidatePath("/dispatch/accounts");
+}
+
+export async function updateAccount(formData: FormData) {
+  await assertStaff();
+
+  const accountId = String(formData.get("accountId"));
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const siteNotes = String(formData.get("siteNotes") ?? "").trim() || null;
+  if (!name) throw new Error("Account name is required.");
+
+  await prisma.account.update({ where: { id: accountId }, data: { name, phone, siteNotes } });
+  revalidatePath(`/dispatch/accounts/${accountId}`);
   revalidatePath("/dispatch/accounts");
 }
 
@@ -85,6 +100,7 @@ export async function createJob(formData: FormData) {
   const siteAddress = String(formData.get("siteAddress") ?? "").trim();
   const expectedDateRaw = String(formData.get("expectedDate") ?? "").trim();
   const docketNumber = String(formData.get("docketNumber") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!accountId || !material || !unit || !siteAddress) {
     throw new Error("Account, material, unit, and site address are required.");
@@ -103,6 +119,7 @@ export async function createJob(formData: FormData) {
       siteAddress,
       expectedDate: expectedDateRaw ? new Date(expectedDateRaw) : null,
       docketNumber,
+      notes,
     },
   });
 
@@ -130,6 +147,7 @@ export async function updateJob(formData: FormData) {
   const siteAddress = String(formData.get("siteAddress") ?? "").trim();
   const expectedDateRaw = String(formData.get("expectedDate") ?? "").trim();
   const docketNumber = String(formData.get("docketNumber") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!material || !unit || !siteAddress) {
     throw new Error("Material, unit, and site address are required.");
@@ -157,6 +175,7 @@ export async function updateJob(formData: FormData) {
       siteAddress,
       expectedDate: expectedDateRaw ? new Date(expectedDateRaw) : null,
       docketNumber,
+      notes,
     },
   });
 
